@@ -17,58 +17,64 @@ class Product
     private int $id;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['product.index'])]
+    #[Assert\NotBlank(message: 'Code cannot be empty.')]
+    #[Groups(['product.index', 'product.create'])]
     private string $code;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['product.index'])]
+    #[Assert\NotBlank]
+    #[Groups(['product.index', 'product.create'])]
     private string $name;
 
     #[ORM\Column(length: 1000)]
-    #[Groups(['product.detail'])]
+    #[Groups(['product.detail', 'product.create'])]
     private string $description;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['product.detail', 'product.create'])]
     private string $image;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['product.index'])]
+    #[Groups(['product.index', 'product.create'])]
     private string $category;
 
     #[ORM\Column]
-    #[Groups(['product.index'])]
+    #[Assert\NotBlank]
+    #[Groups(['product.index', 'product.create'])]
     private float $price;
 
     #[ORM\Column]
-    #[Groups(['product.index'])]
+    #[Assert\Positive()]
+    #[Groups(['product.index', 'product.create'])]
     private int $quantity;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['product.index'])]
+    #[Assert\NotBlank]
+    #[Groups(['product.index', 'product.create'])]
     private string $internalReference;
 
     #[ORM\Column]
-    #[Groups(['product.index'])]
+    #[Groups(['product.index', 'product.create'])]
     private int $shellId;
 
     #[ORM\Column(length: 255)]
     #[Assert\Choice(['INSTOCK', 'LOWSTOCK', 'OUTOFSTOCK'])]
-    #[Groups(['product.index'])]
+    #[Groups(['product.index', 'product.create'])]
     private string $inventoryStatus;
 
     #[ORM\Column]
-    #[Groups(['product.index'])]
+    #[Groups(['product.index', 'product.create'])]
     private float $rating;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
-    private \DateTime $updatedAt;
+    private \DateTimeImmutable $updatedAt;
 
     public function __construct()
     {
-        $this->createdAt = new DateTime(); 
+        $this->createdAt = new \DateTimeImmutable(); 
     }
 
     public function getId(): int
@@ -232,7 +238,7 @@ class Product
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(\DateTime $updatedAt): static
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
 
