@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\ProductRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
@@ -12,40 +13,51 @@ class Product
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['product.index'])]
     private int $id;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['product.index'])]
     private string $code;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['product.index'])]
     private string $name;
 
     #[ORM\Column(length: 1000)]
+    #[Groups(['product.detail'])]
     private string $description;
 
     #[ORM\Column(length: 255)]
     private string $image;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['product.index'])]
     private string $category;
 
     #[ORM\Column]
+    #[Groups(['product.index'])]
     private float $price;
 
     #[ORM\Column]
+    #[Groups(['product.index'])]
     private int $quantity;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['product.index'])]
     private string $internalReference;
 
     #[ORM\Column]
+    #[Groups(['product.index'])]
     private int $shellId;
 
     #[ORM\Column(length: 255)]
     #[Assert\Choice(['INSTOCK', 'LOWSTOCK', 'OUTOFSTOCK'])]
+    #[Groups(['product.index'])]
     private string $inventoryStatus;
 
     #[ORM\Column]
+    #[Groups(['product.index'])]
     private float $rating;
 
     #[ORM\Column]
