@@ -9,6 +9,14 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ProductController extends AbstractController
 {
+    #[Route('/product', name: 'product_show_all', methods: ['GET'])]
+    public function showAll(EntityManagerInterface $entityManager): Response
+    {
+        $products = $entityManager->getRepository(Product::class)->findAll();
+
+        return $this->json($products);
+    }
+
     #[Route('/product/{id}', name: 'product_show', methods: ['GET'])]
     public function show(EntityManagerInterface $entityManager, int $id): Response
     {

@@ -4,6 +4,11 @@ controllers:
         namespace: App\Controller
     type: attribute
 
+product_show_all:
+    path:       /product
+    controller: App\Controller\ProductController::showAll
+    methods:    GET
+
 product_show:
     path:       /product/{id}
     controller: App\Controller\ProductController::show
