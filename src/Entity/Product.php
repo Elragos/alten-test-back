@@ -17,7 +17,7 @@ class Product
     private int $id;
 
     #[ORM\Column(length: 255)]
-    #[Assert\NotBlank(message: 'Code cannot be empty.')]
+    #[Assert\NotBlank]
     #[Groups(['product.index', 'product.create'])]
     private string $code;
 
@@ -44,7 +44,7 @@ class Product
     private float $price;
 
     #[ORM\Column]
-    #[Assert\Positive()]
+    #[Assert\Positive]
     #[Groups(['product.index', 'product.create'])]
     private int $quantity;
 
@@ -233,7 +233,7 @@ class Product
         return $this;
     }
 
-    public function getUpdatedAt(): \DateTime
+    public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
     }

@@ -11,12 +11,15 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 
-#[Assert\Cascade]
 class ProductController extends AbstractController
 {
     /** GET methods */
 
-    #[Route('/product', name: 'product_index', methods: ['GET'])]
+    #[Route(
+        '/product',
+        name: 'product_index',
+        methods: ['GET']
+    )]
     public function index(EntityManagerInterface $entityManager): Response
     {
         $products = $entityManager->getRepository(Product::class)->findAll();
@@ -26,7 +29,12 @@ class ProductController extends AbstractController
         ]);
     }
 
-    #[Route('/product/{id}', name: 'product_show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
+    #[Route(
+        '/product/{id}',
+        name: 'product_show',
+        requirements: ['id' => Requirement::DIGITS],
+        methods: ['GET']
+    )]
     public function show(EntityManagerInterface $entityManager, int $id): Response
     {
         $product = $entityManager->getRepository(Product::class)->find($id);
@@ -44,7 +52,11 @@ class ProductController extends AbstractController
     
     /** POST methods */
 
-    #[Route('/product', name: 'product_create', methods: ['POST'])]
+    #[Route(
+        '/product',
+        name: 'product_create',
+        methods: ['POST']
+    )]
     public function create(
         Request $request,
         #[MapRequestPayload(
@@ -55,7 +67,7 @@ class ProductController extends AbstractController
         )]
         Product $product,
         EntityManagerInterface $em
-    )
+    ) : Response
     {
         $product->setCreatedAt(new \DateTimeImmutable());
         $product->setUpdatedAt(new \DateTimeImmutable());
@@ -66,5 +78,4 @@ class ProductController extends AbstractController
             'groups' => ['product.index', 'product.detail']
         ]);
     }
-    
 }
