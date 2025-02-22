@@ -6,6 +6,7 @@ use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
@@ -17,6 +18,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 180)]
+    #[Groups(['user.index'])]
     private ?string $email = null;
 
     /**
@@ -31,12 +33,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?string $password = null;
 
+    /**
+     * @var string The user name
+     */
     #[ORM\Column(length: 255)]
+    #[Groups(['user.index'])]
     private ?string $username = null;
 
+    /**
+     * @var string The user first name
+     */
     #[ORM\Column(length: 255)]
+    #[Groups(['user.index'])]
     private ?string $firstname = null;
 
+    /**
+     * @var string The currently used API token
+     */
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $apiToken = null;
 
