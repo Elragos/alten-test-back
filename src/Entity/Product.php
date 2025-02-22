@@ -18,52 +18,52 @@ class Product
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
-    #[Groups(['product.index', 'product.create'])]
+    #[Groups(['product.index', 'product.create', 'product.update'])]
     private string $code;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
-    #[Groups(['product.index', 'product.create'])]
+    #[Groups(['product.index', 'product.create', 'product.update'])]
     private string $name;
 
     #[ORM\Column(length: 1000)]
-    #[Groups(['product.detail', 'product.create'])]
+    #[Groups(['product.detail', 'product.create', 'product.update'])]
     private string $description;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['product.detail', 'product.create'])]
+    #[Groups(['product.detail', 'product.create', 'product.update'])]
     private string $image;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['product.index', 'product.create'])]
+    #[Groups(['product.index', 'product.create', 'product.update'])]
     private string $category;
 
     #[ORM\Column]
     #[Assert\NotBlank]
-    #[Groups(['product.index', 'product.create'])]
+    #[Groups(['product.index', 'product.create', 'product.update'])]
     private float $price;
 
     #[ORM\Column]
     #[Assert\Positive]
-    #[Groups(['product.index', 'product.create'])]
+    #[Groups(['product.index', 'product.create', 'product.update'])]
     private int $quantity;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
-    #[Groups(['product.index', 'product.create'])]
+    #[Groups(['product.index', 'product.create', 'product.update'])]
     private string $internalReference;
 
     #[ORM\Column]
-    #[Groups(['product.index', 'product.create'])]
+    #[Groups(['product.index', 'product.create', 'product.update'])]
     private int $shellId;
 
     #[ORM\Column(length: 255)]
     #[Assert\Choice(['INSTOCK', 'LOWSTOCK', 'OUTOFSTOCK'])]
-    #[Groups(['product.index', 'product.create'])]
+    #[Groups(['product.index', 'product.create', 'product.update'])]
     private string $inventoryStatus;
 
     #[ORM\Column]
-    #[Groups(['product.index', 'product.create'])]
+    #[Groups(['product.index', 'product.create', 'product.update'])]
     private float $rating;
 
     #[ORM\Column]
@@ -71,11 +71,6 @@ class Product
 
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
-
-    public function __construct()
-    {
-        $this->createdAt = new \DateTimeImmutable(); 
-    }
 
     public function getId(): int
     {
@@ -241,6 +236,24 @@ class Product
     public function setUpdatedAt(\DateTimeImmutable $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
+
+    /**
+     * Update product data according to newData
+     * @param Product $newData
+     * @return $this
+     */
+    public function mergeNewData(Product $newData): static
+    {
+        foreach(get_object_vars($newData) as $key => $value)
+        {
+            if ($value){
+                $this->$key = $value;
+            }
+        }
+        $this->setUpdatedAt(new \DateTimeImmutable());
 
         return $this;
     }

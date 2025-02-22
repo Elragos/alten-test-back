@@ -78,4 +78,41 @@ class ProductController extends AbstractController
             'groups' => ['product.index', 'product.detail']
         ]);
     }
+
+    /** PATCH methods */
+
+    #[Route(
+        '/product/{id}',
+        name: 'product_update',
+        requirements: ['id' => Requirement::DIGITS],
+        methods: ['PATCH']
+    )]
+    public function update(
+        Request $request,
+        #[MapRequestPayload(
+            acceptFormat: "json",
+            serializationContext: [
+                'groups' => ['product.update']
+            ]
+        )]
+        Product $newData,
+        int $id,
+        EntityManagerInterface $em
+    ) : Response
+    {
+        $product = $em->getRepository(Product::class)->find($id);
+        if (!$product) {
+            throw $this->createNotFoundException(
+                'No product found for id '.$id
+            );
+        }
+
+        $product->mergeNewData($newData);
+        $em->persist($product);
+        $em->flush();
+
+        return $this->json($product, 200, [], [
+            'groups' => ['product.index', 'product.detail']
+        ]);
+    }
 }
