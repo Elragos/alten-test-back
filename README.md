@@ -3,7 +3,7 @@
 Ceci est le projet d'API backoffice pour mon test d'entrée chez [Alten](https://www.alten.fr/). 
 Elle utilise un système d'authentification via JWT.
 
-Il exploite les technologies suivantes :
+L'API exploite les technologies suivantes pour fonctionner :
 
 ![Static Badge](https://img.shields.io/badge/OpenSSL-3.4.0-green?style=flat)
 ![Static Badge](https://img.shields.io/badge/PHP-8.4.3-green?style=flat)
