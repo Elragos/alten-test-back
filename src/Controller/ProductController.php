@@ -115,4 +115,33 @@ class ProductController extends AbstractController
             'groups' => ['product.index', 'product.detail']
         ]);
     }
+
+    /** DELETE methods */
+
+    #[Route(
+        '/product/{id}',
+        name: 'product_update',
+        requirements: ['id' => Requirement::DIGITS],
+        methods: ['DELETE']
+    )]
+    public function delete(
+        Request $request,
+        int $id,
+        EntityManagerInterface $em
+    ) : Response
+    {
+        $product = $em->getRepository(Product::class)->find($id);
+        if (!$product) {
+            throw $this->createNotFoundException(
+                'No product found for id '.$id
+            );
+        }
+
+        $em->remove($product);
+        $em->flush();
+
+        return $this->json($product, 200, [], [
+            'groups' => ['product.index', 'product.detail']
+        ]);
+    }
 }
