@@ -53,6 +53,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $apiToken = null;
 
+    #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
+    private ?Wishlist $wishlist = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -160,6 +163,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setApiToken(?string $apiToken): static
     {
         $this->apiToken = $apiToken;
+
+        return $this;
+    }
+
+    public function getWishlist(): ?Wishlist
+    {
+        return $this->wishlist;
+    }
+
+    public function setWishlist(?Wishlist $wishlist): static
+    {
+        // unset the owning side of the relation if necessary
+        if ($wishlist === null && $this->wishlist !== null) {
+            $this->wishlist->setUser(null);
+        }
+
+        // set the owning side of the relation if necessary
+        if ($wishlist !== null && $wishlist->getUser() !== $this) {
+            $wishlist->setUser($this);
+        }
+
+        $this->wishlist = $wishlist;
 
         return $this;
     }
