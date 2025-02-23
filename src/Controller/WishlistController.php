@@ -21,7 +21,7 @@ class WishlistController extends AbstractController
         name: 'wishlist_index',
         methods: ['GET']
     )]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(): Response
     {
         return $this->json($this->getUser()->getWishList(), 200, [], [
             'groups' => ['product.index', 'user.index']

@@ -10,22 +10,27 @@ security:
                 class: App\Entity\User
                 property: email
     firewalls:
+        # Development configuration
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
-        main:
-            lazy: true
-            provider: app_user_provider
+        # Activate JWT API authentication
+        login:
             json_login:
-                check_path: /token
+                check_path: api_login_check
                 username_path: email
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
+        # Exploit JWT API token
         api:
             pattern: ^/
             stateless: true
             jwt: ~
+        # Main configuration
+        main:
+            lazy: true
+            provider: app_user_provider
 
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
