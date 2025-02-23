@@ -23,8 +23,6 @@ class WishlistController extends AbstractController
     )]
     public function index(EntityManagerInterface $entityManager): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-
         return $this->json($this->getUser()->getWishList(), 200, [], [
             'groups' => ['product.index', 'user.index']
         ]);
@@ -44,8 +42,6 @@ class WishlistController extends AbstractController
         EntityManagerInterface $em
     ): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-
         $product = $em->getRepository(Product::class)->find($id);
         if (!$product) {
             throw $this->createNotFoundException(
@@ -82,8 +78,6 @@ class WishlistController extends AbstractController
         EntityManagerInterface $em
     ): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
-
         $product = $em->getRepository(Product::class)->find($id);
         if (!$product) {
             throw $this->createNotFoundException(

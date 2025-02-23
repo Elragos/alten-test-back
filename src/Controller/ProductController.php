@@ -22,7 +22,6 @@ class ProductController extends AbstractController
     )]
     public function index(EntityManagerInterface $entityManager): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
         $products = $entityManager->getRepository(Product::class)->findAll();
 
         return $this->json($products, 200, [], [
@@ -38,7 +37,6 @@ class ProductController extends AbstractController
     )]
     public function show(EntityManagerInterface $entityManager, int $id): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
         $product = $entityManager->getRepository(Product::class)->find($id);
 
         if (!$product) {

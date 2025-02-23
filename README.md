@@ -8,6 +8,7 @@ L'API exploite les technologies suivantes pour fonctionner :
 ![Static Badge](https://img.shields.io/badge/OpenSSL-3.4.0-green?style=flat)
 ![Static Badge](https://img.shields.io/badge/PHP-8.4.3-green?style=flat)
 ![Static Badge](https://img.shields.io/badge/Symfony-7.2.3-green?style=flat)
+![Static Badge](https://img.shields.io/badge/lexik_jwt_authentication_bundle-3.1-green?style=flat)
 
 ## Prérequis
 
