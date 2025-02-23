@@ -18,9 +18,18 @@ L'API exploite les technologies suivantes pour fonctionner :
 
 ## Installation
 
+Récupérer le repo github : 
 ```
 git clone https://github.com/Elragos/alten-test-back.git
+```
+Lancer l'installation via composer
+```
 composer install
+```
+Générer les clés pour JWT
+```
+mkdir config/jwt
+php bin/console lexik:jwt:generate-keypair
 ```
 
 
