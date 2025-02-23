@@ -97,6 +97,7 @@ class CartController extends AbstractController
         }
 
         // Send result
+        $session->set('cart', $cart);
         $result = [
             "cart" => $cart,
             "errors" => $errors
