@@ -10,14 +10,28 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class ProductController extends AbstractController
 {
+
+    /**
+     * @var TranslatorInterface The used translator interface
+     */
+    private TranslatorInterface $translator;
+
+    public function __construct(TranslatorInterface $translator)
+    {
+        $this->translator = $translator;
+    }
     /** GET methods */
 
     #[Route(
-        '/product',
+        '/{_locale}/product',
         name: 'product_index',
+        requirements: [
+            '_locale' => '%supported_locales%'
+        ],
         methods: ['GET']
     )]
     public function index(EntityManagerInterface $entityManager): Response
@@ -30,9 +44,12 @@ class ProductController extends AbstractController
     }
 
     #[Route(
-        '/product/{id}',
+        '/{_locale}/product/{id}',
         name: 'product_show',
-        requirements: ['id' => Requirement::DIGITS],
+        requirements: [
+            'id' => Requirement::DIGITS,
+            '_locale' => '%supported_locales%'
+        ],
         methods: ['GET']
     )]
     public function show(EntityManagerInterface $entityManager, int $id): Response
@@ -41,7 +58,7 @@ class ProductController extends AbstractController
 
         if (!$product) {
             throw $this->createNotFoundException(
-                'No product found for id '.$id
+                $this->translator->trans("product_not_found", ["id" => $id], "errors")
             );
         }
 
@@ -53,8 +70,11 @@ class ProductController extends AbstractController
     /** POST methods */
 
     #[Route(
-        '/product',
+        '/{_locale}/product',
         name: 'product_create',
+        requirements: [
+            '_locale' => '%supported_locales%'
+        ],
         methods: ['POST']
     )]
     public function create(
@@ -83,9 +103,12 @@ class ProductController extends AbstractController
     /** PATCH methods */
 
     #[Route(
-        '/product/{id}',
+        '/{_locale}/product/{id}',
         name: 'product_update',
-        requirements: ['id' => Requirement::DIGITS],
+        requirements: [
+            'id' => Requirement::DIGITS,
+            '_locale' => '%supported_locales%'
+        ],
         methods: ['PATCH']
     )]
     public function update(
@@ -105,7 +128,7 @@ class ProductController extends AbstractController
         $product = $em->getRepository(Product::class)->find($id);
         if (!$product) {
             throw $this->createNotFoundException(
-                'No product found for id '.$id
+                $this->translator->trans("product_not_found", ["id" => $id], "errors")
             );
         }
 
@@ -121,9 +144,12 @@ class ProductController extends AbstractController
     /** DELETE methods */
 
     #[Route(
-        '/product/{id}',
+        '/{_locale}/product/{id}',
         name: 'product_update',
-        requirements: ['id' => Requirement::DIGITS],
+        requirements: [
+            'id' => Requirement::DIGITS,
+            '_locale' => '%supported_locales%'
+        ],
         methods: ['DELETE']
     )]
     public function delete(
@@ -136,7 +162,7 @@ class ProductController extends AbstractController
         $product = $em->getRepository(Product::class)->find($id);
         if (!$product) {
             throw $this->createNotFoundException(
-                'No product found for id '.$id
+                $this->translator->trans("product_not_found", ["id" => $id], "errors")
             );
         }
 

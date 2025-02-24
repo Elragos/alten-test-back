@@ -13,8 +13,11 @@ use Symfony\Component\Routing\Attribute\Route;
 class UserController extends AbstractController
 {
     #[Route(
-        '/account',
+        '/{_locale}/account',
         name: 'user_create',
+        requirements: [
+            '_locale' => '%supported_locales%',
+        ],
         methods: ['POST']
     )]
     public function register(

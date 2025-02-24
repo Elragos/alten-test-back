@@ -8,17 +8,30 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class WishlistController extends AbstractController
 {
+    /**
+     * @var TranslatorInterface The used translator interface
+     */
+    private TranslatorInterface $translator;
+
+    public function __construct(TranslatorInterface $translator)
+    {
+        $this->translator = $translator;
+    }
+
     /** GET methods */
 
     #[Route(
-        '/wishlist',
+        '/{_locale}/wishlist',
         name: 'wishlist_index',
+        requirements: [
+            '_locale' => '%supported_locales%'
+        ],
         methods: ['GET']
     )]
     public function index(): Response
@@ -31,9 +44,12 @@ class WishlistController extends AbstractController
     /** POST methods */
 
     #[Route(
-        '/wishlist/{id}',
+        '/{_locale}/wishlist/{id}',
         name: 'wishlist_add',
-        requirements: ['id' => Requirement::DIGITS],
+        requirements: [
+            'id' => Requirement::DIGITS,
+            '_locale' => '%supported_locales%'
+        ],
         methods: ['POST']
     )]
     public function addProduct(
@@ -45,7 +61,7 @@ class WishlistController extends AbstractController
         $product = $em->getRepository(Product::class)->find($id);
         if (!$product) {
             throw $this->createNotFoundException(
-                'No product found for id '.$id
+                $this->translator->trans("product_not_found", ["id" => $id], "errors")
             );
         }
         $wishlist = $this->getUser()->getWishList();
@@ -67,9 +83,12 @@ class WishlistController extends AbstractController
     /** DELETE methods */
 
     #[Route(
-        '/wishlist/{id}',
+        '/{_locale}/wishlist/{id}',
         name: 'wishlist_add',
-        requirements: ['id' => Requirement::DIGITS],
+        requirements: [
+            'id' => Requirement::DIGITS,
+            '_locale' => '%supported_locales%'
+        ],
         methods: ['DELETE']
     )]
     public function removeProduct(
@@ -81,7 +100,7 @@ class WishlistController extends AbstractController
         $product = $em->getRepository(Product::class)->find($id);
         if (!$product) {
             throw $this->createNotFoundException(
-                'No product found for id '.$id
+                $this->translator->trans("product_not_found", ["id" => $id], "errors")
             );
         }
         $wishlist = $this->getUser()->getWishList();

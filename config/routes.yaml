@@ -5,4 +5,6 @@ controllers:
     type: attribute
 
 api_login_check:
-    path: /token
+    path: /{_locale}/token
+    requirements:
+        _locale: '%supported_locales%'
