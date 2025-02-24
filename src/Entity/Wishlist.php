@@ -8,20 +8,29 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
+/**
+ * Entity representing a user wishlist.
+ */
 #[ORM\Entity(repositoryClass: WishlistRepository::class)]
 class Wishlist
 {
+    /**
+     * @var int|null Wishlist ID.
+     */
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
+    /**
+     * @var User|null Wishlist user.
+     */
     #[ORM\OneToOne(inversedBy: 'wishlist', cascade: ['persist', 'remove'])]
     #[Groups(['user.index'])]
     private ?User $user = null;
 
     /**
-     * @var Collection<int, Product>
+     * @var Collection<int, Product> Wishlist products.
      */
     #[ORM\ManyToMany(targetEntity: Product::class)]
     #[Groups(['product.index'])]

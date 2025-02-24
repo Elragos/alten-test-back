@@ -8,51 +8,63 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
 
+/**
+ * Entity representing an app user.
+ */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    /**
+     * @var int|null User ID.
+     */
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
+    /**
+     * @var string|null User email, unique in DB.
+     */
     #[ORM\Column(length: 180)]
     #[Groups(['user.index'])]
     private ?string $email = null;
 
     /**
-     * @var list<string> The user roles
+     * @var list<string> The user roles.
      */
     #[ORM\Column]
     private array $roles = [];
 
     /**
-     * @var string The hashed password
+     * @var string The hashed password.
      */
     #[ORM\Column]
     private ?string $password = null;
 
     /**
-     * @var string The user name
+     * @var string The user name.
      */
     #[ORM\Column(length: 255)]
     #[Groups(['user.index'])]
     private ?string $username = null;
 
     /**
-     * @var string The user first name
+     * @var string The user first name.
      */
     #[ORM\Column(length: 255)]
     #[Groups(['user.index'])]
     private ?string $firstname = null;
 
     /**
-     * @var string The currently used API token
+     * @var string The currently used API token (not used ATM)
      */
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $apiToken = null;
 
+    /**
+     * @var Wishlist|null The user wishlist
+     */
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?Wishlist $wishlist = null;
 

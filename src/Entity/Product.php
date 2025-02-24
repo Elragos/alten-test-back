@@ -7,68 +7,113 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
+/**
+ * Entity representing an app product.
+ */
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 class Product
 {
+    /**
+     * @var int Product ID.
+     */
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['product.index'])]
     private int $id;
 
+    /**
+     * @var string Product code.
+     */
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
     #[Groups(['product.index', 'product.create', 'product.update'])]
     private string $code;
 
+    /**
+     * @var string Product name.
+     */
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
     #[Groups(['product.index', 'product.create', 'product.update'])]
     private string $name;
 
+    /**
+     * @var string Product description.
+     */
     #[ORM\Column(length: 1000)]
     #[Groups(['product.detail', 'product.create', 'product.update'])]
     private string $description;
 
+    /**
+     * @var string Product image URL.
+     */
     #[ORM\Column(length: 255)]
     #[Groups(['product.detail', 'product.create', 'product.update'])]
     private string $image;
 
+    /**
+     * @var string Product category name.
+     */
     #[ORM\Column(length: 255)]
     #[Groups(['product.index', 'product.create', 'product.update'])]
     private string $category;
 
+    /**
+     * @var float Product price.
+     */
     #[ORM\Column]
     #[Assert\NotBlank]
     #[Groups(['product.index', 'product.create', 'product.update'])]
     private float $price;
 
+    /**
+     * @var int Product quantity in stock.
+     */
     #[ORM\Column]
     #[Assert\Positive]
     #[Groups(['product.index', 'product.create', 'product.update'])]
     private int $quantity;
 
+    /**
+     * @var string Product internal reference.
+     */
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
     #[Groups(['product.index', 'product.create', 'product.update'])]
     private string $internalReference;
 
+    /**
+     * @var int Product shell ID.
+     */
     #[ORM\Column]
     #[Groups(['product.index', 'product.create', 'product.update'])]
     private int $shellId;
 
+    /**
+     * @var string Product inventory status ('INSTOCK', 'LOWSTOCK', 'OUTOFSTOCK')
+     */
     #[ORM\Column(length: 255)]
     #[Assert\Choice(['INSTOCK', 'LOWSTOCK', 'OUTOFSTOCK'])]
     #[Groups(['product.index', 'product.create', 'product.update'])]
     private string $inventoryStatus;
 
+    /**
+     * @var float Product rating.
+     */
     #[ORM\Column]
     #[Groups(['product.index', 'product.create', 'product.update'])]
     private float $rating;
 
+    /**
+     * @var \DateTimeImmutable Product creation time.
+     */
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    /**
+     * @var \DateTimeImmutable Product last updated time.
+     */
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
@@ -241,20 +286,26 @@ class Product
     }
 
     /**
-     * Update product data according to newData
-     * @param Product $newData
+     * Update product data according to newData.
+     *
+     * @param Product $newData New data to put in product.
      * @return $this
      */
     public function mergeNewData(Product $newData): static
     {
+        // For each product attribute
         foreach(get_object_vars($newData) as $key => $value)
         {
+            // If set
             if ($value){
+                // Replace old value with new
                 $this->$key = $value;
             }
         }
+        // Change last updated time
         $this->setUpdatedAt(new \DateTimeImmutable());
 
+        // Return updated product
         return $this;
     }
 }
