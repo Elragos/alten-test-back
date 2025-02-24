@@ -10,6 +10,9 @@ L'API exploite les technologies suivantes pour fonctionner :
 ![Static Badge](https://img.shields.io/badge/Symfony-7.2.3-green?style=flat)
 ![Static Badge](https://img.shields.io/badge/lexik_jwt_authentication_bundle-3.1-green?style=flat)
 
+Elle utilise également un système de traductions afin d'avoir une version personnalisée selon la langue désirée 
+(langues prises en compte : français, anglais)
+
 ## Prérequis
 
 * [Composer >= 2.8.5](https://getcomposer.org/) pour installer le projet
@@ -44,3 +47,7 @@ php bin/console doctrine:database:create
 ```
 php bin/console doctrine:schema:create
 ```
+
+## Exploiter l'API
+
+Utiliser le fichier Postman pour avoir toutes les URL disponibles pour communiquer avec l'API
