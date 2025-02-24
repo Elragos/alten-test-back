@@ -14,5 +14,5 @@
 ###< lexik/jwt-authentication-bundle ###
 
 /.idea/
-.env
-.env.dev
+/.env
+/.env.dev
