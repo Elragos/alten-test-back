@@ -48,6 +48,11 @@ php bin/console doctrine:database:create
 php bin/console doctrine:schema:create
 ```
 
+Ensuite pour rajouter le compte admin par défaut (pwd 123456) :
+```
+php bin/console doctrine:fixtures:load
+```
+
 ## Exploiter l'API
 
 Utiliser le fichier Postman pour avoir toutes les URL disponibles pour communiquer avec l'API
