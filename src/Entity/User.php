@@ -50,17 +50,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $username = null;
 
     /**
-     * @var string The user first name.
+     * @var string|null The user first name.
      */
     #[ORM\Column(length: 255)]
     #[Groups(['user.index'])]
     private ?string $firstname = null;
-
-    /**
-     * @var string The currently used API token (not used ATM)
-     */
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $apiToken = null;
 
     /**
      * @var Wishlist|null The user wishlist
@@ -163,18 +157,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setFirstname(string $firstname): static
     {
         $this->firstname = $firstname;
-
-        return $this;
-    }
-
-    public function getApiToken(): ?string
-    {
-        return $this->apiToken;
-    }
-
-    public function setApiToken(?string $apiToken): static
-    {
-        $this->apiToken = $apiToken;
 
         return $this;
     }
