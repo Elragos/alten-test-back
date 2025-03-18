@@ -48,10 +48,17 @@ php bin/console doctrine:database:create
 php bin/console doctrine:schema:create
 ```
 
-Ensuite pour rajouter le compte admin par défaut (pwd 123456) :
+Ensuite pour rajouter les données par défaut :
 ```
 php bin/console doctrine:fixtures:load
 ```
+Cela va créer 2 comptes utilisateurs avec le mdp 123456 :
+* admin@admin.com &rarr; compte admin
+* test@test.com &rarr; compte utilisateur
+Cela va aussi créer 3 produits pour tester les 3 types de stocks :
+* Test code &rarr; INSTOCK
+* Test code 2 &rarr; LOWSTOCK
+* Test code 3 &rarr; OUTOFSTOCK
 
 ## Exploiter l'API
 
