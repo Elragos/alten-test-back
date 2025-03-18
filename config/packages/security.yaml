@@ -39,6 +39,10 @@ security:
         - { path: '%supported_locales_regex%/token', roles: PUBLIC_ACCESS }
         - { path: '%supported_locales_regex%/account', roles: PUBLIC_ACCESS }
         - { path: ^/, roles: IS_AUTHENTICATED_FULLY }
+
+    # Define role hierarchy
+    role_hierarchy:
+        ROLE_ADMIN: ROLE_USER
 when@test:
     security:
         password_hashers:
