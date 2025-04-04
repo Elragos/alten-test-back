@@ -1,0 +1,59 @@
+{
+    "users": [
+        {
+            "email": "admin@admin.com",
+            "username": "admin",
+            "firstname":"admin",
+            "password": "123456",
+            "role": "ROLE_ADMIN"
+        },
+        {
+            "email": "test@test.com",
+            "username": "Test",
+            "firstname":"test",
+            "password": "123456",
+            "role": "ROLE_USER"
+        }
+    ],
+    "products": [
+        {
+            "code": "Test code",
+            "name": "Test INSTOCK",
+            "description": "Test description",
+            "image": "Test image",
+            "category": "Test Category",
+            "price": 9.99,
+            "quantity": 10,
+            "internalReference": "Test Internal",
+            "shellId": 10,
+            "inventoryStatus": "INSTOCK",
+            "rating": 4.5
+        },
+        {
+            "code": "Test code 2",
+            "name": "Test LOWSTOCK",
+            "description": "Test description",
+            "image": "Test image",
+            "category": "Test Category",
+            "price": 9.99,
+            "quantity": 10,
+            "internalReference": "Test Internal",
+            "shellId": 10,
+            "inventoryStatus": "LOWSTOCK",
+            "rating": 4.5
+        },
+        {
+            "code": "Test code 3",
+            "name": "Test OUTOFSTOCK",
+            "description": "Test description",
+            "image": "Test image",
+            "category": "Test Category",
+            "price": 9.99,
+            "quantity": 10,
+            "internalReference": "Test Internal",
+            "shellId": 10,
+            "inventoryStatus": "OUTOFSTOCK",
+            "rating": 4.5
+        }
+    ]
+}

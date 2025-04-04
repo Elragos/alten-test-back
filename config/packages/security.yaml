@@ -35,7 +35,6 @@ security:
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
     access_control:
-        - { path: '%supported_locales_regex%/admin', roles: ROLE_ADMIN }
         - { path: '%supported_locales_regex%/token', roles: PUBLIC_ACCESS }
         - { path: '%supported_locales_regex%/account', roles: PUBLIC_ACCESS }
         - { path: ^/, roles: IS_AUTHENTICATED_FULLY }

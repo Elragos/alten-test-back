@@ -1,7 +1,10 @@
-product_not_found: "Aucun produit ne correspond à l'id {id}"
-
 cart:
   payload:
     product_id_missing: "Le champ productId manque dans la requête"
     invalid_quantity: "Quantité invalide dans la requête"
   not_enough_stock: "Stock insuffisant pour le produit {productId}. Quantité dans le panier mise à {productStock}"
+
+product_not_found: "Aucun produit ne correspond à l'id {id}"
+
+user:
+  email_already_used: "L'email {email} est déjà utilisé"

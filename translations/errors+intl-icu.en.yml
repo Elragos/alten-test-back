@@ -1,7 +1,10 @@
-product_not_found: "No product found for id {id}"
-
 cart:
   payload:
     product_id_missing: "No productId found in payload"
     invalid_quantity: "Invalid quantity in payload"
   not_enough_stock: "Not enough stock for Product {productId}. Setting quantity at {productStock}"
+
+product_not_found: "No product found for id {id}"
+
+user:
+  email_already_used: "L'email {email} est déjà utilisé"
