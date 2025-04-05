@@ -8,6 +8,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -83,17 +84,21 @@ class ProductController extends AbstractController
 
         // If no match
         if (!$product) {
-            // Send 404 error
-            throw $this->createNotFoundException(
-                $this->translator->trans("product_not_found", ["id" => $id], "errors")
-            );
+            // Send not found response
+            return $this->json([
+                'error' => $this->translator->trans(
+                    "product.id_not_found",
+                    ["id" => $id],
+                    "errors"
+                )
+            ], Response::HTTP_NOT_FOUND);
         }
         // Otherwise send detailed information
         return $this->json($product, 200, [], [
             'groups' => ['product.index', 'product.detail']
         ]);
     }
-    
+
     /** POST methods */
 
     /**
@@ -136,10 +141,27 @@ class ProductController extends AbstractController
         )]
         Product $product,
         EntityManagerInterface $em
-    ) : Response
-    {
+    ): Response {
         // Deny access if not admin
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        // Check that desired code is not used by another product
+        $colliding = $em->getRepository(Product::class)->findOneBy([
+            'code' => $product->getCode()
+        ]);
+
+        // If match
+        if ($colliding != null) {
+            // Send bad request
+            return $this->json([
+                'error' => $this->translator->trans(
+                    "product.code_already_used",
+                    ["code" => $product->getCode()],
+                    "errors"
+                )
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
         // Set auto generated product info
         $product->setCreatedAt(new \DateTimeImmutable());
         $product->setUpdatedAt(new \DateTimeImmutable());
@@ -147,10 +169,11 @@ class ProductController extends AbstractController
         $em->persist($product);
         $em->flush();
 
-        // Send updated product info
-        return $this->json($product, 201, [], [
-            'groups' => ['product.index', 'product.detail']
-        ]);
+        // Redirect to created product URL
+        return $this->redirectToRoute('product_show', [
+            'id' => $product->getId(),
+            '_locale' => $this->translator->getLocale()
+        ], Response::HTTP_CREATED);
     }
 
     /** PATCH methods */
@@ -196,19 +219,39 @@ class ProductController extends AbstractController
         Product $newData,
         int $id,
         EntityManagerInterface $em
-    ) : Response
-    {
+    ): Response {
         // Deny access if not admin
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
         // Fetch wanted product in DB
         $product = $em->getRepository(Product::class)->find($id);
         // If no match
         if (!$product) {
-            // Send 404 error
-            throw $this->createNotFoundException(
-                $this->translator->trans("product_not_found", ["id" => $id], "errors")
-            );
+            // Send not found response
+            return $this->json([
+                'error' => $this->translator->trans(
+                    "product.id_not_found",
+                    ["id" => $id],
+                    "errors"
+                )
+            ], Response::HTTP_NOT_FOUND);
         }
+        // Check that desired code is not used by another product
+        $colliding = $em->getRepository(Product::class)->findOneBy([
+            'code' => $newData->getCode()
+        ]);
+
+        // If match and not same product
+        if ($colliding != null && $colliding->getId() != $product->getId()) {
+            // Send bad request
+            return $this->json([
+                'error' => $this->translator->trans(
+                    "product.code_already_used",
+                    ["code" => $newData->getCode()],
+                    "errors"
+                )
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
         // Merge product data
         $product->mergeNewData($newData);
         // Save updated info
@@ -231,7 +274,7 @@ class ProductController extends AbstractController
      */
     #[Route(
         '/{_locale}/product/{id}',
-        name: 'product_update',
+        name: 'product_delete',
         requirements: [
             'id' => Requirement::DIGITS,
             '_locale' => '%supported_locales%'
@@ -241,18 +284,21 @@ class ProductController extends AbstractController
     public function delete(
         int $id,
         EntityManagerInterface $em
-    ) : Response
-    {
+    ): Response {
         // Deny access if not admin
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
         // Fetch wanted product in DB
         $product = $em->getRepository(Product::class)->find($id);
         // If no match
         if (!$product) {
-            // Send 404 error
-            throw $this->createNotFoundException(
-                $this->translator->trans("product_not_found", ["id" => $id], "errors")
-            );
+            // Send not found response
+            return $this->json([
+                'error' => $this->translator->trans(
+                    "product.id_not_found",
+                    ["id" => $id],
+                    "errors"
+                )
+            ], Response::HTTP_NOT_FOUND);
         }
         // Delete product in DB
         $em->remove($product);
