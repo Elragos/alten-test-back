@@ -34,7 +34,7 @@ class WishlistController extends AbstractController
     /** GET methods */
 
     /**
-     * List current user's wishlist.
+     * List current user's wishlist products.
      *
      * @return Response Server Response (JSON if ok, error otherwise).
      */
@@ -48,9 +48,18 @@ class WishlistController extends AbstractController
     )]
     public function index(): Response
     {
-        return $this->json($this->getUser()->getWishList(), 200, [], [
-            'groups' => ['product.index', 'user.index']
-        ]);
+        // Get user wishlist
+        $wishlist = $this->getUser()->getWishlist();
+
+        // Return current user wishlit products
+        return $this->json(
+            $this->getWishlistProducts($wishlist),
+            200,
+            [],
+            [
+                'groups' => ['product.index']
+            ]
+        );
     }
 
     /** POST methods */
@@ -74,13 +83,11 @@ class WishlistController extends AbstractController
     public function addProduct(
         int $id,
         EntityManagerInterface $em
-    ): Response
-    {
+    ): Response {
         // Fetch wanted product in DB
         $product = $em->getRepository(Product::class)->find($id);
         // If no match
-        if (!$product)
-        {
+        if (!$product) {
             // Send 404 error
             throw $this->createNotFoundException(
                 $this->translator->trans("product_not_found", ["id" => $id], "errors")
@@ -89,8 +96,7 @@ class WishlistController extends AbstractController
         // Get user wishlist
         $wishlist = $this->getUser()->getWishList();
         // If not created
-        if (!$wishlist)
-        {
+        if (!$wishlist) {
             // Create it
             $wishlist = new Wishlist();
             $wishlist->setUser($this->getUser());
@@ -102,9 +108,14 @@ class WishlistController extends AbstractController
         $em->flush();
 
         // Send updated wishlist data
-        return $this->json($wishlist, 201, [], [
-            'groups' => ['product.index', 'user.index']
-        ]);
+        return $this->json(
+            $this->getWishlistProducts($wishlist),
+            200,
+            [],
+            [
+                'groups' => ['product.index']
+            ]
+        );
     }
 
     /** DELETE methods */
@@ -118,7 +129,7 @@ class WishlistController extends AbstractController
      */
     #[Route(
         '/{_locale}/wishlist/{id}',
-        name: 'wishlist_add',
+        name: 'wishlist_remove',
         requirements: [
             'id' => Requirement::DIGITS,
             '_locale' => '%supported_locales%'
@@ -128,8 +139,7 @@ class WishlistController extends AbstractController
     public function removeProduct(
         int $id,
         EntityManagerInterface $em
-    ): Response
-    {
+    ): Response {
         // Fetch wanted product in DB
         $product = $em->getRepository(Product::class)->find($id);
         // If no match
@@ -141,21 +151,36 @@ class WishlistController extends AbstractController
         }
         // Get user wishlist
         $wishlist = $this->getUser()->getWishList();
-        // If not created
-        if (!$wishlist)
-        {
-            // Create if
-            $wishlist = new Wishlist();
-            $wishlist->setUser($this->getUser());
+        // If exists
+        if ($wishlist) {
+            // Remove product from wishlist (if not found, nothing happens)
+            $wishlist->removeProduct($product);
+            // Save wishlist
+            $em->persist($wishlist);
+            $em->flush();
         }
-        // Remove product from wishlist (if not found, nothing happens)
-        $wishlist->removeProduct($product);
-        // Save wishlist
-        $em->persist($wishlist);
-        $em->flush();
+
         // Send updated wishlist data
-        return $this->json($wishlist, 201, [], [
-            'groups' => ['product.index', 'user.index']
-        ]);
+        return $this->json(
+            $this->getWishlistProducts($wishlist),
+            200,
+            [],
+            [
+                'groups' => ['product.index']
+            ]
+        );
+    }
+
+    /**
+     * Get wishlist products ready to be sent in JSON.
+     * @param Wishlist||null $wishlist Selected wishlist.
+     * @return Product[] Wishlist products, or empty array if wishlist is null.
+     */
+    private function getWishlistProducts(?Wishlist $wishlist): array
+    {
+        if ($wishlist == null) {
+            return [];
+        }
+        return $wishlist->getProducts()->toArray();
     }
 }

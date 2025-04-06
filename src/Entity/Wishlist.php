@@ -6,7 +6,6 @@ use App\Repository\WishlistRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Attribute\Groups;
 
 /**
  * Entity representing a user wishlist.
@@ -26,14 +25,12 @@ class Wishlist
      * @var User|null Wishlist user.
      */
     #[ORM\OneToOne(inversedBy: 'wishlist', cascade: ['persist', 'remove'])]
-    #[Groups(['user.index'])]
     private ?User $user = null;
 
     /**
      * @var Collection<int, Product> Wishlist products.
      */
     #[ORM\ManyToMany(targetEntity: Product::class)]
-    #[Groups(['product.index'])]
     private Collection $products;
 
     public function __construct()
