@@ -7,6 +7,9 @@ use App\Repository\UserRepository;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * Class regrouping all UserController tests.
+ */
 class UserControllerTest extends TestControllerBase
 {
     /**

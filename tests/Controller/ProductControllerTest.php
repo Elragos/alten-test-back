@@ -2,11 +2,13 @@
 
 namespace Tests\Controller;
 
-use App\Entity\Product;
 use App\Repository\ProductRepository;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * Class regrouping all ProductController tests.
+ */
 class ProductControllerTest extends TestControllerBase
 {
     /**
@@ -613,7 +615,7 @@ class ProductControllerTest extends TestControllerBase
             'HTTP_AUTHORIZATION' => 'Bearer ' . $token
         ]);
 
-        // Test HTTP response is forbidden
+        // Test HTTP response is OK
         $this->assertResponseIsSuccessful();
         // Check that product has been deleted
         $product = $this->productRepository->findOneByCode($dto['code']);
