@@ -52,8 +52,7 @@ class CartController extends AbstractController
         $session = $request->getSession();
 
         // Initialize cart if not defined
-        if (!$session->has('cart'))
-        {
+        if (!$session->has('cart')) {
             $session->set('cart', []);
         }
 
@@ -77,82 +76,91 @@ class CartController extends AbstractController
         '/{_locale}/cart',
         name: 'cart_add',
         requirements: [
-            'id' => Requirement::DIGITS,
             '_locale' => '%supported_locales%'
         ],
         methods: ['POST']
     )]
-    public function add(Request $request, EntityManagerInterface $em) : Response
+    public function add(Request $request, EntityManagerInterface $em): Response
     {
-        // Get user session
-        $session = $request->getSession();
-
-        // Initialize cart if not defined
-        if (!$session->has('cart'))
-        {
-            $session->set('cart', []);
-        }
-
         // Get request payload
         $payload = $request->getPayload();
-        // Validate payload product (product exists in DB)
-        $productId = $payload->get("productId");
-        // If productId not supplied
-        if (!$productId)
-        {
-            // Send error
-            return $this->json([
-                'error' => $this->translator->trans("cart.payload.product_id_missing", [], "errors"),
-            ], 400, [], []);
-        }
-        // Fetch wanted product with DB
-        $product = $em->getRepository(Product::class)->find($productId);
-        // If not found
-        if (!$product)
-        {
-            // Send 404 error
-            throw $this->createNotFoundException(
-                $this->translator->trans("product_not_found", ["id" => $productId], "errors")
-            );
-        }
+
         // Validate payload quantity
         $quantity = $payload->get("quantity");
         // If invalid quantity (not an int)
-        if (!is_int($quantity))
-        {
+        if (!is_int($quantity)) {
             // Send error
             return $this->json([
                 'error' => $this->translator->trans("cart.payload.invalid_quantity", [], "errors"),
             ], 400, [], []);
         }
 
+        // Validate payload product (product exists in DB)
+        $productId = $payload->get("productId");
+        // If productId invalid (not an int)
+        if (!is_int($productId)) {
+            // Send error
+            return $this->json([
+                'error' => $this->translator->trans("cart.payload.invalid_product_id", [], "errors"),
+            ], 400, [], []);
+        }
+        // Fetch wanted product with DB
+        $product = $em->getRepository(Product::class)->find($productId);
+        // If not found
+        if (!$product) {
+            // Send 404 error
+            return $this->json([
+                'error' => $this->translator->trans(
+                    "product.id_not_found",
+                    ["id" => $productId],
+                    "errors"
+                )
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        // Get user session
+        $session = $request->getSession();
+
+        // Initialize cart if not defined
+        if (!$session->has('cart')) {
+            $session->set('cart', []);
+        }
+
         // Find cart item accordingly
         $cart = $session->get('cart');
+        $cartIndexToUpdate = -1;
+        foreach ($cart as $index => $cartItem) {
+            if ($cartItem['product']->getId() == $productId) {
+                $cartIndexToUpdate = $index;
+            }
+        }
         // Initialize cart item if not set
-        if (!isset($cart["$productId"]))
-        {
-            $cart["$productId"] = [
+        if ($cartIndexToUpdate == -1) {
+            $cart[] = [
                 "product" => $product,
                 "quantity" => 0,
             ];
+            $cartIndexToUpdate = sizeof($cart) - 1;
         }
         // Update cart item accordingly
         $errors = [];
-        $cart["$productId"]["quantity"] += $quantity;
+        $cart[$cartIndexToUpdate]["quantity"] += $quantity;
         // Limit quantity to product stock
         $productStock = $product->getQuantity();
-        if ($cart["$productId"]["quantity"] > $productStock)
-        {
-            $cart["$productId"]["quantity"] = $productStock;
-            $errors[] = $this->translator->trans("cart.payload.invalid_quantity", [
+        if ($cart[$cartIndexToUpdate]["quantity"] > $productStock) {
+            $cart[$cartIndexToUpdate]["quantity"] = $productStock;
+            $errors[] = $this->translator->trans("cart.item.not_enough_stock", [
                 "productId" => $productId,
-                "quantity" => $productStock
+                "productStock" => $productStock
             ], "errors");
         }
         // Remove item if quantity negative or null
-        if ($cart["$productId"]["quantity"] <= 0)
-        {
-            unset($cart["$productId"]);
+        if ($cart[$cartIndexToUpdate]["quantity"] <= 0) {
+            unset($cart[$cartIndexToUpdate]);
+            $errors[] = $this->translator->trans("cart.item.quantity_zero", [
+                "productId" => $productId,
+                "productStock" => $productStock
+            ], "errors");
         }
 
         // Send result
@@ -162,7 +170,67 @@ class CartController extends AbstractController
             "errors" => $errors
         ];
 
-        return $this->json($result, 201, [], [
+        return $this->json($result, 200, [], [
+            'groups' => ['product.index']
+        ]);
+    }
+
+    #[Route(
+        '/{_locale}/cart/{productId}',
+        name: 'cart_remove',
+        requirements: [
+            'productId' => Requirement::DIGITS,
+            '_locale' => '%supported_locales%'
+        ],
+        methods: ['DELETE']
+    )]
+    public function delete(Request $request, EntityManagerInterface $em, int $productId): Response
+    {
+        // If productId invalid (not an int)
+        if (!is_int($productId)) {
+            // Send error
+            return $this->json([
+                'error' => $this->translator->trans("cart.payload.invalid_product_id", [], "errors"),
+            ], 400, [], []);
+        }
+        // Fetch wanted product with DB
+        $product = $em->getRepository(Product::class)->find($productId);
+        // If not found
+        if (!$product) {
+            // Send 404 error
+            return $this->json([
+                'error' => $this->translator->trans(
+                    "product.id_not_found",
+                    ["id" => $productId],
+                    "errors"
+                )
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        // Get user session
+        $session = $request->getSession();
+
+        // Initialize cart if not defined
+        if (!$session->has('cart')) {
+            $session->set('cart', []);
+        }
+
+        // Find cart item accordingly
+        $cart = $session->get('cart');
+        foreach ($cart as $index => $cartItem) {
+            if ($cartItem['product']->getId() == $productId) {
+                unset($cart[$index]);
+            }
+        }
+       
+        // Send result
+        $session->set('cart', $cart);
+        $result = [
+            "cart" => $cart,
+            "errors" => []
+        ];
+
+        return $this->json($result, 200, [], [
             'groups' => ['product.index']
         ]);
     }

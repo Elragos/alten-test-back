@@ -529,7 +529,7 @@ class ProductControllerTest extends TestControllerBase
         ], json_encode($updatedDto));
 
         $response = $this->client->getResponse();
-        // Assert that response is bad request
+        // Assert that response is not found
         $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
 
         $jsonResponse = json_decode($response->getContent(), true);
