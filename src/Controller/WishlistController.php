@@ -8,7 +8,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -67,30 +66,35 @@ class WishlistController extends AbstractController
     /**
      * Add product to current user's wishlist.
      *
-     * @param int $id Product ID to add.
+     * @param string $code Product code to add.
      * @param EntityManagerInterface $em Used entity manager.
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
-        '/{_locale}/wishlist/{id}',
+        '/{_locale}/wishlist/{code}',
         name: 'wishlist_add',
         requirements: [
-            'id' => Requirement::DIGITS,
             '_locale' => '%supported_locales%'
         ],
         methods: ['POST']
     )]
     public function addProduct(
-        int $id,
+        string $code,
         EntityManagerInterface $em
     ): Response {
         // Fetch wanted product in DB
-        $product = $em->getRepository(Product::class)->find($id);
+        $product = $em->getRepository(Product::class)->findOneBy([
+            'code' => $code
+        ]);
         // If no match
         if (!$product) {
             // Send 404 error
             throw $this->createNotFoundException(
-                $this->translator->trans("product_not_found", ["id" => $id], "errors")
+                $this->translator->trans(
+                    "product.code_not_found",
+                    ["code" => $code],
+                    "errors"
+                )
             );
         }
         // Get user wishlist
@@ -123,30 +127,31 @@ class WishlistController extends AbstractController
     /**
      * Remove product from current user's wishlist.
      *
-     * @param int $id Product ID to remove.
+     * @param string $code Product code to remove.
      * @param EntityManagerInterface $em
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
-        '/{_locale}/wishlist/{id}',
+        '/{_locale}/wishlist/{code}',
         name: 'wishlist_remove',
         requirements: [
-            'id' => Requirement::DIGITS,
             '_locale' => '%supported_locales%'
         ],
         methods: ['DELETE']
     )]
     public function removeProduct(
-        int $id,
+        string $code,
         EntityManagerInterface $em
     ): Response {
         // Fetch wanted product in DB
-        $product = $em->getRepository(Product::class)->find($id);
+        $product = $em->getRepository(Product::class)->findOneBy([
+            'code'=> $code
+        ]);
         // If no match
         if (!$product) {
             // Send 404 error
             throw $this->createNotFoundException(
-                $this->translator->trans("product_not_found", ["id" => $id], "errors")
+                $this->translator->trans("product.code_not_found", ["code" => $code], "errors")
             );
         }
         // Get user wishlist

@@ -1,15 +1,13 @@
 cart:
   payload:
-    product_id_missing: 'No productId found in payload'
-    invalid_product_id: 'Invalid productId in payload'
     invalid_quantity: 'Invalid quantity in payload'
   item:
-    not_enough_stock: 'Not enough stock for Product {productId}. Setting quantity at {productStock}'
-    quantity_zero: 'Product {productId} was removed from cart due to quantity equals to 0 or below'
+    not_enough_stock: 'Not enough stock for product "{code}"". Setting quantity at {stock}'
+    quantity_zero: 'Product {code} was removed from cart due to quantity equals to 0 or below'
 
 product:
   code_already_used: 'Product code "{code}" already used'
-  id_not_found: 'No product found for id {id}'
+  id_not_found: 'No product found for code "{code}"'
 
 user:
   email_already_used: 'Email "{email}" already used'

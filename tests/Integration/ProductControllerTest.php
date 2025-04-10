@@ -2,7 +2,6 @@
 
 namespace Tests\Integration;
 
-use App\Repository\ProductRepository;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -11,10 +10,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class ProductControllerTest extends TestControllerBase
 {
-    /**
-     * @var ProductRepository Used product repostitory.
-     */
-    private ProductRepository $productRepository;
 
     /**
      * @var TranslatorInterface Used translator.
@@ -25,7 +20,6 @@ class ProductControllerTest extends TestControllerBase
     {
         parent::setUp();
         // Load user repository
-        $this->productRepository = static::getContainer()->get(ProductRepository::class);
         $this->translator = static::getContainer()->get(TranslatorInterface::class);
     }
 
@@ -36,7 +30,7 @@ class ProductControllerTest extends TestControllerBase
     public function testGetAllProductsShouldFailedWhenNotLoggedIn(): void
     {
         // Get product list
-        $this->client->request('GET', '/fr/product');
+        $this->client->request('GET', '/fr/products');
         // Assert response is unauthorized
         $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
@@ -54,12 +48,12 @@ class ProductControllerTest extends TestControllerBase
 
         // Get test products' code
         $productCodes = [];
-        foreach ($this->productRepository->findAll() as $product) {
-            $productCodes[] = $product->getCode();
+        foreach ($this->data->getProducts() as $product) {
+            $productCodes[] = $product['code'];
         }
 
         // Get product list
-        $this->client->request('GET', '/fr/product', [], [], [
+        $this->client->request('GET', '/fr/products', [], [], [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_AUTHORIZATION' => 'Bearer ' . $token
         ]);
@@ -87,7 +81,7 @@ class ProductControllerTest extends TestControllerBase
     public function testGetSpecificProductShouldFailedWhenNotLoggedIn(): void
     {
         // Get product list
-        $this->client->request('GET', '/fr/product/1');
+        $this->client->request('GET', '/fr/products/1');
         // Assert response is unauthorized
         $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
@@ -105,10 +99,9 @@ class ProductControllerTest extends TestControllerBase
 
         // Get test product code
         $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
 
         // Get product details
-        $this->client->request('GET', '/fr/product/' . $product->getId(), [], [], [
+        $this->client->request('GET', '/fr/products/' . $dto['code'], [], [], [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_AUTHORIZATION' => 'Bearer ' . $token
         ]);
@@ -126,10 +119,10 @@ class ProductControllerTest extends TestControllerBase
     }
 
     /**
-     * Test getting unexisting product failed with 404.
+     * Test getting non-existing product failed with 404.
      * @return void.
      */
-    public function testGetUnexsitingProductShouldThrow404(): void
+    public function testGetNonExsitingProductShouldThrow404(): void
     {
         // Get user
         $user = $this->data->getUsers()[1];
@@ -137,10 +130,16 @@ class ProductControllerTest extends TestControllerBase
         $token = $this->getJwtToken($user['email'], $user['password']);
 
         // Try getting unexisting product
-        $this->client->request('GET', '/fr/product/0', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ]);
+        $this->client->request(
+            'GET',
+            '/fr/products/0',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
 
         $response = $this->client->getResponse();
         // Assert response is not found
@@ -151,9 +150,9 @@ class ProductControllerTest extends TestControllerBase
         $this->assertArrayHasKey('error', $jsonResponse);
         $this->assertEquals(
             $this->translator->trans(
-                'product.id_not_found',
+                'product.code_not_found',
                 [
-                    'id' => 0
+                    'code' => 0
                 ],
                 'errors',
                 'fr'
@@ -169,7 +168,7 @@ class ProductControllerTest extends TestControllerBase
     public function testCreateProductShouldFailedWhenNotLoggedIn(): void
     {
         // Create product
-        $this->client->request('POST', '/fr/product');
+        $this->client->request('POST', '/fr/products');
         // Assert response is unauthorized
         $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
@@ -190,10 +189,17 @@ class ProductControllerTest extends TestControllerBase
         $dto = $this->data->getProducts()[0];
 
         // Create product
-        $this->client->request('POST', '/fr/product', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ], json_encode($dto));
+        $this->client->request(
+            'POST',
+            '/fr/products',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
+            ],
+            json_encode($dto)
+        );
 
         // Test HTTP response is forbidden
         $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
@@ -216,10 +222,17 @@ class ProductControllerTest extends TestControllerBase
         $dto['code'] = 'Test creation';
 
         // Create product
-        $this->client->request('POST', '/fr/product', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ], json_encode($dto));
+        $this->client->request(
+            'POST',
+            '/fr/products',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
+            ],
+            json_encode($dto)
+        );
 
         $response = $this->client->getResponse();
         // Test HTTP response is Created
@@ -227,7 +240,7 @@ class ProductControllerTest extends TestControllerBase
         // Test that we are redirected to product details URL
         $this->assertTrue($response->isRedirect());
         $redirectedUrl = $response->headers->get('Location');
-        $this->assertMatchesRegularExpression('#^/fr/product/\d+$#', $redirectedUrl);
+        $this->assertMatchesRegularExpression('#^/fr/products/\S+$#', $redirectedUrl);
 
         // Access redirected URL
         $this->client->request('GET', $redirectedUrl, [], [], [
@@ -261,10 +274,17 @@ class ProductControllerTest extends TestControllerBase
         $dto = $this->data->getProducts()[0];
 
         // Create product
-        $this->client->request('POST', '/fr/product', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode($dto));
+        $this->client->request(
+            'POST',
+            '/fr/products',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
+            ],
+            json_encode($dto)
+        );
 
         $response = $this->client->getResponse();
         // Assert that response is bad request
@@ -295,7 +315,7 @@ class ProductControllerTest extends TestControllerBase
         // Update product
         $this->client->request(
             'PATCH',
-            '/fr/product/1',
+            '/fr/products/0',
             [],
             [],
             [
@@ -319,13 +339,19 @@ class ProductControllerTest extends TestControllerBase
 
         // Get test product
         $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
 
         // Create product
-        $this->client->request('PATCH', '/fr/product/' . $product->getId(), [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ], json_encode($dto));
+        $this->client->request(
+            'PATCH',
+            '/fr/products/' . $dto['code'],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode($dto)
+        );
 
         // Test HTTP response is forbidden
         $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
@@ -343,15 +369,21 @@ class ProductControllerTest extends TestControllerBase
 
         // Get test product
         $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
         // Change description
         $dto['description'] = "Updated description";
 
         // Create product
-        $this->client->request('PATCH', '/fr/product/' . $product->getId(), [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ], json_encode($dto));
+        $this->client->request(
+            'PATCH',
+            '/fr/products/' . $dto['code'],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode($dto)
+        );
 
         $response = $this->client->getResponse();
         // Test HTTP response is OK
@@ -366,12 +398,6 @@ class ProductControllerTest extends TestControllerBase
         // Test that description matches the one sent
         $this->assertArrayHasKey('description', $json);
         $this->assertEquals($json['description'], $dto['description']);
-
-
-        // Reload product from DB
-        $product = $this->productRepository->findOneByCode($dto['code']);
-        // Check that product description has been updated
-        $this->assertEquals($dto['description'], $product->getDescription());
     }
 
     /**
@@ -387,15 +413,22 @@ class ProductControllerTest extends TestControllerBase
 
         // Get test product
         $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
+        $code = $dto['code'];
         // Change code
         $dto['code'] = "Code updated";
 
         // Create product
-        $this->client->request('PATCH', '/fr/product/' . $product->getId(), [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ], json_encode($dto));
+        $this->client->request(
+            'PATCH',
+            '/fr/products/' . $code,
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode($dto)
+        );
 
         $response = $this->client->getResponse();
         // Test HTTP response is OK
@@ -410,11 +443,6 @@ class ProductControllerTest extends TestControllerBase
         // Test that description matches the one sent
         $this->assertArrayHasKey('description', $json);
         $this->assertEquals($json['description'], $dto['description']);
-
-        // Reload product from DB
-        $product = $this->productRepository->findOneByCode($dto['code']);
-        // Check that product description has been updated
-        $this->assertEquals($dto['code'], $product->getCode());
     }
 
     /**
@@ -432,15 +460,19 @@ class ProductControllerTest extends TestControllerBase
 
         // Get test product
         $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
-        // Get last update date
-        $lastUpdate = $product->getUpdatedAt();
 
         // Create product
-        $this->client->request('PATCH', '/fr/product/' . $product->getId(), [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ], json_encode($dto));
+        $this->client->request(
+            'PATCH',
+            '/fr/products/' . $dto['code'],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode($dto)
+        );
 
         $response = $this->client->getResponse();
         // Test HTTP response is OK
@@ -455,11 +487,6 @@ class ProductControllerTest extends TestControllerBase
         // Test that description matches the one sent
         $this->assertArrayHasKey('description', $json);
         $this->assertEquals($json['description'], $dto['description']);
-
-        // Reload product from DB
-        $product = $this->productRepository->findOneByCode($dto['code']);
-        // Check that product has been updated
-        $this->assertGreaterThan($lastUpdate, $product->getUpdatedAt());
     }
 
     /**
@@ -476,19 +503,23 @@ class ProductControllerTest extends TestControllerBase
 
         // Get test products
         $updatedDto = $this->data->getProducts()[0];
-        $updatedProduct = $this->productRepository->findOneByCode($updatedDto['code']);
+        $code = $updatedDto['code'];
         $collidingDto = $this->data->getProducts()[1];
-        $collidingProduct = $this->productRepository->findOneByCode($collidingDto['code']);
         // Set updated DTO code to colliding DTO
-        $updatedDto['code'] = $collidingProduct->getCode();
-
+        $updatedDto['code'] = $collidingDto['code'];
 
         // Create product
-        $this->client->request('PATCH', '/fr/product/' . $updatedProduct->getId(), [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ], json_encode($updatedDto));
-
+        $this->client->request(
+            'PATCH',
+            '/fr/products/' . $code,
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode($updatedDto)
+        );
         $response = $this->client->getResponse();
         // Assert that response is bad request
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
@@ -500,7 +531,7 @@ class ProductControllerTest extends TestControllerBase
             $this->translator->trans(
                 'product.code_already_used',
                 [
-                    'code' => $updatedDto['code']
+                    'code' => $code
                 ],
                 'errors',
                 'fr'
@@ -513,7 +544,8 @@ class ProductControllerTest extends TestControllerBase
      * Check that admin cannot update product if product id does not exists.
      * @return void.
      */
-    public function testUpdateProductShouldFailedIfNotExists() : void {
+    public function testUpdateProductShouldFailedIfNotExists(): void
+    {
         // Get user
         $user = $this->data->getUsers()[0];
         // Get token
@@ -523,10 +555,18 @@ class ProductControllerTest extends TestControllerBase
         $updatedDto = $this->data->getProducts()[0];
 
         // Create product
-        $this->client->request('PATCH', '/fr/product/0', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ], json_encode($updatedDto));
+        // Create product
+        $this->client->request(
+            'PATCH',
+            '/fr/products/0',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode($updatedDto)
+        );
 
         $response = $this->client->getResponse();
         // Assert that response is not found
@@ -537,9 +577,9 @@ class ProductControllerTest extends TestControllerBase
         $this->assertArrayHasKey('error', $jsonResponse);
         $this->assertEquals(
             $this->translator->trans(
-                'product.id_not_found',
+                'product.code_not_found',
                 [
-                    'id' => 0
+                    'code' => 0
                 ],
                 'errors',
                 'fr'
@@ -552,11 +592,12 @@ class ProductControllerTest extends TestControllerBase
      * Check that login is required to delete product.
      * @return void.
      */
-    public function testDeleteProductShouldFailedWhenNotLoggedIn() : void {
+    public function testDeleteProductShouldFailedWhenNotLoggedIn(): void
+    {
         // Update product
         $this->client->request(
             'DELETE',
-            '/fr/product/1',
+            '/fr/products/1',
             [],
             [],
             [
@@ -566,40 +607,41 @@ class ProductControllerTest extends TestControllerBase
         // Assert response is unauthorized
         $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
-    
+
     /**
      * Check that admin is required to delete product.
      *
      * @return void.
      */
-    public function testDeleteProductShouldFailedWhenNotAdmin() : void {
+    public function testDeleteProductShouldFailedWhenNotAdmin(): void
+    {
         // Get user
         $user = $this->data->getUsers()[1];
         // Get token
         $token = $this->getJwtToken($user['email'], $user['password']);
 
-        // Get test product
-        $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
-
         // Delete product
-        $this->client->request('DELETE', '/fr/product/' . $product->getId(), [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ]);
+        $this->client->request(
+            'DELETE',
+            '/fr/products/0',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
 
         // Test HTTP response is forbidden
         $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
-        // Check that product has not been deleted
-        $product = $this->productRepository->findOneByCode($dto['code']);
-        $this->assertNotNull($product);
     }
-    
+
     /**
      * Check that admin can delete product.
      * @return void.
      */
-     public function testDeleteProductShouldSuccedIfAdmin() : void {
+    public function testDeleteProductShouldSuccedIfAdmin(): void
+    {
         // Get user
         $user = $this->data->getUsers()[0];
         // Get token
@@ -607,36 +649,45 @@ class ProductControllerTest extends TestControllerBase
 
         // Get test product
         $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
 
         // Delete product
-         $this->client->request('DELETE', '/fr/product/' . $product->getId(), [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ]);
+        $this->client->request(
+            'DELETE',
+            '/fr/products/' . $dto['code'],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
 
         // Test HTTP response is OK
         $this->assertResponseIsSuccessful();
-        // Check that product has been deleted
-        $product = $this->productRepository->findOneByCode($dto['code']);
-        $this->assertNull($product);
     }
 
     /**
      * Check that admin cannot delete product if product id does not exists.
      * @return void.
      */
-    public function testDeleteProductShouldFailedIfNotExists() : void {
+    public function testDeleteProductShouldFailedIfNotExists(): void
+    {
         // Get user
         $user = $this->data->getUsers()[0];
         // Get token
         $token = $this->getJwtToken($user['email'], $user['password']);
 
         // Delete product
-         $this->client->request('DELETE', '/fr/product/0', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-        ]);
+        $this->client->request(
+            'DELETE',
+            '/fr/products/0',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
 
         $response = $this->client->getResponse();
         // Assert that response is bad request
@@ -647,9 +698,9 @@ class ProductControllerTest extends TestControllerBase
         $this->assertArrayHasKey('error', $jsonResponse);
         $this->assertEquals(
             $this->translator->trans(
-                'product.id_not_found',
+                'product.code_not_found',
                 [
-                    'id' => 0
+                    'code' => 0
                 ],
                 'errors',
                 'fr'

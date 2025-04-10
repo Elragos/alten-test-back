@@ -19,7 +19,6 @@ class Product
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['product.index'])]
     private int $id;
 
     /**

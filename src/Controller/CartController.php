@@ -8,7 +8,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -96,23 +95,16 @@ class CartController extends AbstractController
         }
 
         // Validate payload product (product exists in DB)
-        $productId = $payload->get("productId");
-        // If productId invalid (not an int)
-        if (!is_int($productId)) {
-            // Send error
-            return $this->json([
-                'error' => $this->translator->trans("cart.payload.invalid_product_id", [], "errors"),
-            ], 400, [], []);
-        }
+        $productCode = $payload->get("productCode");
         // Fetch wanted product with DB
-        $product = $em->getRepository(Product::class)->find($productId);
+        $product = $em->getRepository(Product::class)->findOneBy(['code' => $productCode]);
         // If not found
         if (!$product) {
             // Send 404 error
             return $this->json([
                 'error' => $this->translator->trans(
-                    "product.id_not_found",
-                    ["id" => $productId],
+                    "product.code_not_found",
+                    ["code" => $productCode],
                     "errors"
                 )
             ], Response::HTTP_NOT_FOUND);
@@ -130,7 +122,7 @@ class CartController extends AbstractController
         $cart = $session->get('cart');
         $cartIndexToUpdate = -1;
         foreach ($cart as $index => $cartItem) {
-            if ($cartItem['product']->getId() == $productId) {
+            if ($cartItem['product']->getCode() == $productCode) {
                 $cartIndexToUpdate = $index;
             }
         }
@@ -150,16 +142,15 @@ class CartController extends AbstractController
         if ($cart[$cartIndexToUpdate]["quantity"] > $productStock) {
             $cart[$cartIndexToUpdate]["quantity"] = $productStock;
             $errors[] = $this->translator->trans("cart.item.not_enough_stock", [
-                "productId" => $productId,
-                "productStock" => $productStock
+                "code" => $productCode,
+                "stock" => $productStock
             ], "errors");
         }
         // Remove item if quantity negative or null
         if ($cart[$cartIndexToUpdate]["quantity"] <= 0) {
             unset($cart[$cartIndexToUpdate]);
             $errors[] = $this->translator->trans("cart.item.quantity_zero", [
-                "productId" => $productId,
-                "productStock" => $productStock
+                "code" => $productCode
             ], "errors");
         }
 
@@ -176,32 +167,25 @@ class CartController extends AbstractController
     }
 
     #[Route(
-        '/{_locale}/cart/{productId}',
+        '/{_locale}/cart/{code}',
         name: 'cart_remove',
         requirements: [
-            'productId' => Requirement::DIGITS,
             '_locale' => '%supported_locales%'
         ],
         methods: ['DELETE']
     )]
-    public function delete(Request $request, EntityManagerInterface $em, int $productId): Response
+    public function delete(Request $request, EntityManagerInterface $em, string $code): Response
     {
-        // If productId invalid (not an int)
-        if (!is_int($productId)) {
-            // Send error
-            return $this->json([
-                'error' => $this->translator->trans("cart.payload.invalid_product_id", [], "errors"),
-            ], 400, [], []);
-        }
+
         // Fetch wanted product with DB
-        $product = $em->getRepository(Product::class)->find($productId);
+        $product = $em->getRepository(Product::class)->findOneBy(['code' => $code]);
         // If not found
         if (!$product) {
             // Send 404 error
             return $this->json([
                 'error' => $this->translator->trans(
-                    "product.id_not_found",
-                    ["id" => $productId],
+                    "product.code_not_found",
+                    ["code" => $code],
                     "errors"
                 )
             ], Response::HTTP_NOT_FOUND);
@@ -218,7 +202,7 @@ class CartController extends AbstractController
         // Find cart item accordingly
         $cart = $session->get('cart');
         foreach ($cart as $index => $cartItem) {
-            if ($cartItem['product']->getId() == $productId) {
+            if ($cartItem['product']->getCode() == $code) {
                 unset($cart[$index]);
             }
         }

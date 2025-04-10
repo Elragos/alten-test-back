@@ -1,15 +1,13 @@
 cart:
   payload:
-    product_id_missing: 'Le champ productId manque dans la requête'
-    invalid_product_id: 'Le champ productId est invalide'
     invalid_quantity: 'Quantité invalide dans la requête'
   item:
-    not_enough_stock: 'Stock insuffisant pour le produit {productId}. Quantité dans le panier mise à {productStock}'
-    quantity_zero: 'Le produit {productId} a été retiré du panier car sa quantité était inférieure ou égale à 0'
+    not_enough_stock: 'Stock insuffisant pour le produit "{code}". Quantité dans le panier mise à {stock}'
+    quantity_zero: 'Le produit "{code}" a été retiré du panier car sa quantité était inférieure ou égale à 0'
 
 product:
   code_already_used: 'Le code produit "{code}" est déjà utilisé'
-  id_not_found: 'Aucun produit ne correspond à l''id {id}'
+  code_not_found: 'Aucun produit ne correspond au code {code}'
 
 user:
   email_already_used: 'L''email "{email}" est déjà utilisé'

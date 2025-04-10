@@ -13,16 +13,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class CartControllerTest extends TestControllerBase
 {
     /**
-     * @var ProductRepository Used product repostitory.
-     */
-    private ProductRepository $productRepository;
-
-    /**
-     * @var UserRepository Used user repository.
-     */
-    private UserRepository $userRepository;
-
-    /**
      * @var TranslatorInterface Used translator.
      */
     private TranslatorInterface $translator;
@@ -31,8 +21,6 @@ class CartControllerTest extends TestControllerBase
     {
         parent::setUp();
         // Load used attributes
-        $this->productRepository = static::getContainer()->get(ProductRepository::class);
-        $this->userRepository = static::getContainer()->get(UserRepository::class);
         $this->translator = static::getContainer()->get(TranslatorInterface::class);
     }
     /**
@@ -103,7 +91,6 @@ class CartControllerTest extends TestControllerBase
         $token = $this->getJwtToken($user['email'], $user['password']);
         // Get product to add in cart
         $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
 
         // Perform action
         $this->client->request(
@@ -116,7 +103,7 @@ class CartControllerTest extends TestControllerBase
                 'HTTP_AUTHORIZATION' => 'Bearer ' . $token
             ],
             json_encode([
-                'productId' => $product->getId(),
+                'productCode' => $dto['code'],
                 'quantity' => 1
             ])
         );
@@ -137,17 +124,17 @@ class CartControllerTest extends TestControllerBase
         $this->assertEquals(1, sizeof($json['cart']));
         $cartItem = $json['cart'][0];
         $this->assertArrayHasKey('product', $cartItem);
-        $this->assertArrayHasKey('id', $cartItem['product']);
-        $this->assertEquals($product->getId(), $cartItem['product']['id']);
+        $this->assertArrayHasKey('code', $cartItem['product']);
+        $this->assertEquals($dto['code'], $cartItem['product']['code']);
         $this->assertArrayHasKey('quantity', $cartItem);
         $this->assertEquals(1, $cartItem['quantity']);
     }
 
     /**
-     * Test adding unexisting product returns 404 error.
+     * Test adding non-existing product returns 404 error.
      * @return void
      */
-    public function testaddUnexistingProductToCartShouldThrow404(): void
+    public function testAddNonExistingProductToCartShouldThrow404(): void
     {
         // Get user
         $user = $this->data->getUsers()[1];
@@ -165,7 +152,7 @@ class CartControllerTest extends TestControllerBase
                 'HTTP_AUTHORIZATION' => 'Bearer ' . $token
             ],
             json_encode([
-                'productId' => 0,
+                'productCode' => 0,
                 'quantity' => 1
             ])
         );
@@ -180,9 +167,9 @@ class CartControllerTest extends TestControllerBase
         $this->assertArrayHasKey('error', $json);
         $this->assertEquals(
             $this->translator->trans(
-                'product.id_not_found',
+                'product.code_not_found',
                 [
-                    'id' => 0
+                    'code' => 0
                 ],
                 'errors',
                 'fr'
@@ -195,7 +182,7 @@ class CartControllerTest extends TestControllerBase
      * Test adding invalid productId returns 400 error.
      * @return void
      */
-    public function testAddInvalidProductIdToCartShouldThrow400(): void
+    public function testAddInvalidQuantityToCartShouldThrow400(): void
     {
         // Get user
         $user = $this->data->getUsers()[1];
@@ -213,53 +200,7 @@ class CartControllerTest extends TestControllerBase
                 'HTTP_AUTHORIZATION' => 'Bearer ' . $token
             ],
             json_encode([
-                'productId' => 'azerty',
-                'quantity' => 1
-            ])
-        );
-        $response = $this->client->getResponse();
-        // Test HTTP response is OK
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        // Test response is JSON format
-        $this->assertJson($response->getContent());
-
-        $json = json_decode($response->getContent(), true);
-        // Assert that returned error message is the one expected
-        $this->assertArrayHasKey('error', $json);
-        $this->assertEquals(
-            $this->translator->trans(
-                'cart.payload.invalid_product_id',
-                [],
-                'errors',
-                'fr'
-            ),
-            $json['error']
-        );
-    }
-
-    /**
-     * Test adding invalid productId returns 400 error.
-     * @return void
-     */
-    public function testaddInvalidQuantityToCartShouldThrow400(): void
-    {
-        // Get user
-        $user = $this->data->getUsers()[1];
-        // Get token
-        $token = $this->getJwtToken($user['email'], $user['password']);
-
-        // Perform action
-        $this->client->request(
-            'POST',
-            '/fr/cart',
-            [],
-            [],
-            [
-                'CONTENT_TYPE' => 'application/json',
-                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
-            ],
-            json_encode([
-                'productId' => 1,
+                'productCode' => 0,
                 'quantity' => 'azerty'
             ])
         );
@@ -295,7 +236,6 @@ class CartControllerTest extends TestControllerBase
         $token = $this->getJwtToken($user['email'], $user['password']);
         // Get product to add in cart
         $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
 
         // Perform action twice
         $this->client->request(
@@ -308,7 +248,7 @@ class CartControllerTest extends TestControllerBase
                 'HTTP_AUTHORIZATION' => 'Bearer ' . $token
             ],
             json_encode([
-                'productId' => $product->getId(),
+                'productCode' => $dto['code'],
                 'quantity' => 1
             ])
         );
@@ -323,7 +263,7 @@ class CartControllerTest extends TestControllerBase
                 'HTTP_AUTHORIZATION' => 'Bearer ' . $token
             ],
             json_encode([
-                'productId' => $product->getId(),
+                'productCode' => $dto['code'],
                 'quantity' => 1
             ])
         );
@@ -344,8 +284,8 @@ class CartControllerTest extends TestControllerBase
         $this->assertEquals(1, sizeof($json['cart']));
         $cartItem = $json['cart'][0];
         $this->assertArrayHasKey('product', $cartItem);
-        $this->assertArrayHasKey('id', $cartItem['product']);
-        $this->assertEquals($product->getId(), $cartItem['product']['id']);
+        $this->assertArrayHasKey('code', $cartItem['product']);
+        $this->assertEquals($dto['code'], $cartItem['product']['code']);
         $this->assertArrayHasKey('quantity', $cartItem);
         $this->assertEquals(2, $cartItem['quantity']);
     }
@@ -362,7 +302,6 @@ class CartControllerTest extends TestControllerBase
         $token = $this->getJwtToken($user['email'], $user['password']);
         // Get product to add in cart
         $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
 
         // Perform action
         $this->client->request(
@@ -375,8 +314,8 @@ class CartControllerTest extends TestControllerBase
                 'HTTP_AUTHORIZATION' => 'Bearer ' . $token
             ],
             json_encode([
-                'productId' => $product->getId(),
-                'quantity' => $product->getQuantity() + 1
+                'productCode' => $dto['code'],
+                'quantity' => $dto['quantity'] + 1
             ])
         );
         $response = $this->client->getResponse();
@@ -396,8 +335,8 @@ class CartControllerTest extends TestControllerBase
             $this->translator->trans(
                 'cart.item.not_enough_stock',
                 [
-                    'productId' => $product->getId(),
-                    'productStock' => $product->getQuantity(),
+                    'code' => $dto['code'],
+                    'stock' => $dto['quantity']
                 ],
                 'errors',
                 'fr'
@@ -408,10 +347,10 @@ class CartControllerTest extends TestControllerBase
         $this->assertEquals(1, sizeof($json['cart']));
         $cartItem = $json['cart'][0];
         $this->assertArrayHasKey('product', $cartItem);
-        $this->assertArrayHasKey('id', $cartItem['product']);
-        $this->assertEquals($product->getId(), $cartItem['product']['id']);
+        $this->assertArrayHasKey('code', $cartItem['product']);
+        $this->assertEquals($dto['code'], $cartItem['product']['code']);
         $this->assertArrayHasKey('quantity', $cartItem);
-        $this->assertEquals($product->getQuantity(), $cartItem['quantity']);
+        $this->assertEquals($dto['quantity'], $cartItem['quantity']);
     }
 
     /**
@@ -427,7 +366,6 @@ class CartControllerTest extends TestControllerBase
         $token = $this->getJwtToken($user['email'], $user['password']);
         // Get product to add in cart
         $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
 
         // Perform action
         $this->client->request(
@@ -440,7 +378,7 @@ class CartControllerTest extends TestControllerBase
                 'HTTP_AUTHORIZATION' => 'Bearer ' . $token
             ],
             json_encode([
-                'productId' => $product->getId(),
+                'productCode' => $dto['code'],
                 'quantity' => 0
             ])
         );
@@ -461,8 +399,7 @@ class CartControllerTest extends TestControllerBase
             $this->translator->trans(
                 'cart.item.quantity_zero',
                 [
-                    'productId' => $product->getId(),
-                    'productStock' => $product->getQuantity(),
+                    'code' => $dto['code']
                 ],
                 'errors',
                 'fr'
@@ -519,9 +456,9 @@ class CartControllerTest extends TestControllerBase
         $this->assertArrayHasKey('error', $json);
         $this->assertEquals(
             $this->translator->trans(
-                'product.id_not_found',
+                'product.code_not_found',
                 [
-                    'id' => 0
+                    'code' => 0
                 ],
                 'errors',
                 'fr'
@@ -541,9 +478,7 @@ class CartControllerTest extends TestControllerBase
         $token = $this->getJwtToken($user['email'], $user['password']);
         // Get test products
         $addedDto = $this->data->getProducts()[0];
-        $addedProduct = $this->productRepository->findOneByCode($addedDto['code']);
         $removedDto = $this->data->getProducts()[1];
-        $removedProduct = $this->productRepository->findOneByCode($removedDto['code']);
 
         // Add product
         $this->client->request(
@@ -556,14 +491,14 @@ class CartControllerTest extends TestControllerBase
                 'HTTP_AUTHORIZATION' => 'Bearer ' . $token
             ],
             json_encode([
-                'productId' => $addedProduct->getId(),
+                'productCode' => $addedDto['code'],
                 'quantity' => 1
             ])
         );
         // Remove other product
         $this->client->request(
             'DELETE',
-            '/fr/cart/' . $removedProduct->getId(),
+            '/fr/cart/' . $removedDto['code'],
             [],
             [],
             [
@@ -588,8 +523,8 @@ class CartControllerTest extends TestControllerBase
         $this->assertEquals(1, sizeof($json['cart']));
         $cartItem = $json['cart'][0];
         $this->assertArrayHasKey('product', $cartItem);
-        $this->assertArrayHasKey('id', $cartItem['product']);
-        $this->assertEquals($addedProduct->getId(), $cartItem['product']['id']);
+        $this->assertArrayHasKey('code', $cartItem['product']);
+        $this->assertEquals($addedDto['code'], $cartItem['product']['code']);
         $this->assertArrayHasKey('quantity', $cartItem);
         $this->assertEquals(1, $cartItem['quantity']);
     }
@@ -605,7 +540,6 @@ class CartControllerTest extends TestControllerBase
         $token = $this->getJwtToken($user['email'], $user['password']);
         // Get test products
         $dto = $this->data->getProducts()[0];
-        $product = $this->productRepository->findOneByCode($dto['code']);
 
         // Add product
         $this->client->request(
@@ -618,14 +552,14 @@ class CartControllerTest extends TestControllerBase
                 'HTTP_AUTHORIZATION' => 'Bearer ' . $token
             ],
             json_encode([
-                'productId' => $product->getId(),
+                'productId' => $dto['code'],
                 'quantity' => 1
             ])
         );
         // Remove other product
         $this->client->request(
             'DELETE',
-            '/fr/cart/' . $product->getId(),
+            '/fr/cart/' . $dto['code'],
             [],
             [],
             [

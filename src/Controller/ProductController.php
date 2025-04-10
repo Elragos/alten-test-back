@@ -3,12 +3,14 @@
 namespace App\Controller;
 
 use App\Entity\Product;
+use App\Service\ProductService;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\EntityNotFoundException;
+use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -20,6 +22,11 @@ class ProductController extends AbstractController
 {
 
     /**
+     * @var ProductService Used product service.
+     */
+    private ProductService $productService;
+
+    /**
      * @var TranslatorInterface The used translator interface
      */
     private TranslatorInterface $translator;
@@ -27,10 +34,14 @@ class ProductController extends AbstractController
     /**
      * Generate controller.
      *
+     * @param ProductService $productService Used product service.
      * @param TranslatorInterface $translator Used translator.
      */
-    public function __construct(TranslatorInterface $translator)
-    {
+    public function __construct(
+        ProductService $productService,
+        TranslatorInterface $translator
+    ) {
+        $this->productService = $productService;
         $this->translator = $translator;
     }
     /** GET methods */
@@ -38,21 +49,20 @@ class ProductController extends AbstractController
     /**
      * List available products.
      *
-     * @param EntityManagerInterface $entityManager Used entity manager.
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
-        '/{_locale}/product',
+        '/{_locale}/products',
         name: 'product_index',
         requirements: [
             '_locale' => '%supported_locales%'
         ],
         methods: ['GET']
     )]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(): Response
     {
         // Get all products from DB
-        $products = $entityManager->getRepository(Product::class)->findAll();
+        $products = $this->productService->getAll();
 
         // Send product list
         return $this->json($products, 200, [], [
@@ -62,33 +72,31 @@ class ProductController extends AbstractController
     }
 
     /**
-     * Get all info on a product.
+     * Get all info on a specific product.
      *
-     * @param EntityManagerInterface $entityManager Used entity manager.
-     * @param int $id Wanted product ID
+     * @param string $code Desired product code.
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
-        '/{_locale}/product/{id}',
+        '/{_locale}/products/{code}',
         name: 'product_show',
         requirements: [
-            'id' => Requirement::DIGITS,
             '_locale' => '%supported_locales%'
         ],
         methods: ['GET']
     )]
-    public function show(EntityManagerInterface $entityManager, int $id): Response
+    public function show(string $code): Response
     {
         // Fetch wanted product with DB
-        $product = $entityManager->getRepository(Product::class)->find($id);
+        $product = $this->productService->getByCode($code);
 
         // If no match
-        if (!$product) {
+        if ($product == null) {
             // Send not found response
             return $this->json([
                 'error' => $this->translator->trans(
-                    "product.id_not_found",
-                    ["id" => $id],
+                    "product.code_not_found",
+                    ["code" => $code],
                     "errors"
                 )
             ], Response::HTTP_NOT_FOUND);
@@ -120,11 +128,10 @@ class ProductController extends AbstractController
      *
      * @param Request $request Client request.
      * @param Product $product Product info
-     * @param EntityManagerInterface $em Used entity manager.
-     * @return Response Server Response (JSON if ok, error otherwise).
+     * @return Response Server Response (Redirect if ok, error otherwise).
      */
     #[Route(
-        '/{_locale}/product',
+        '/{_locale}/products',
         name: 'product_create',
         requirements: [
             '_locale' => '%supported_locales%'
@@ -139,19 +146,17 @@ class ProductController extends AbstractController
                 'groups' => ['product.create']
             ]
         )]
-        Product $product,
-        EntityManagerInterface $em
+        Product $product
     ): Response {
         // Deny access if not admin
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
-        // Check that desired code is not used by another product
-        $colliding = $em->getRepository(Product::class)->findOneBy([
-            'code' => $product->getCode()
-        ]);
-
-        // If match
-        if ($colliding != null) {
+        // Try creating product
+        try {
+            $this->productService->create($product);
+        }
+        // If code already used
+        catch (InvalidArgumentException $e) {
             // Send bad request
             return $this->json([
                 'error' => $this->translator->trans(
@@ -162,16 +167,9 @@ class ProductController extends AbstractController
             ], Response::HTTP_BAD_REQUEST);
         }
 
-        // Set auto generated product info
-        $product->setCreatedAt(new \DateTimeImmutable());
-        $product->setUpdatedAt(new \DateTimeImmutable());
-        // Save product in DB
-        $em->persist($product);
-        $em->flush();
-
         // Redirect to created product URL
         return $this->redirectToRoute('product_show', [
-            'id' => $product->getId(),
+            'code' => $product->getCode(),
             '_locale' => $this->translator->getLocale()
         ], Response::HTTP_CREATED);
     }
@@ -201,7 +199,7 @@ class ProductController extends AbstractController
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
-        '/{_locale}/product/{id}',
+        '/{_locale}/products/{code}',
         name: 'product_update',
         requirements: [
             'id' => Requirement::DIGITS,
@@ -217,46 +215,33 @@ class ProductController extends AbstractController
             ]
         )]
         Product $newData,
-        int $id,
-        EntityManagerInterface $em
+        string $code
     ): Response {
         // Deny access if not admin
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
-        // Fetch wanted product in DB
-        $product = $em->getRepository(Product::class)->find($id);
-        // If no match
-        if (!$product) {
-            // Send not found response
-            return $this->json([
-                'error' => $this->translator->trans(
-                    "product.id_not_found",
-                    ["id" => $id],
-                    "errors"
-                )
-            ], Response::HTTP_NOT_FOUND);
-        }
-        // Check that desired code is not used by another product
-        $colliding = $em->getRepository(Product::class)->findOneBy([
-            'code' => $newData->getCode()
-        ]);
 
-        // If match and not same product
-        if ($colliding != null && $colliding->getId() != $product->getId()) {
+        try {
+            $product = $this->productService->update($code, $newData);
+        } catch (InvalidArgumentException $e) {
             // Send bad request
             return $this->json([
                 'error' => $this->translator->trans(
                     "product.code_already_used",
-                    ["code" => $newData->getCode()],
+                    ["code" => $code],
                     "errors"
                 )
             ], Response::HTTP_BAD_REQUEST);
+        } catch (EntityNotFoundException $e) {
+            // Send not found response
+            return $this->json([
+                'error' => $this->translator->trans(
+                    "product.code_not_found",
+                    ["code" => $code],
+                    "errors"
+                )
+            ], Response::HTTP_NOT_FOUND);
         }
 
-        // Merge product data
-        $product->mergeNewData($newData);
-        // Save updated info
-        $em->persist($product);
-        $em->flush();
         // Send updated product data
         return $this->json($product, 200, [], [
             'groups' => ['product.index', 'product.detail']
@@ -268,42 +253,37 @@ class ProductController extends AbstractController
     /**
      * Remove product from DB.
      *
-     * @param int $id Product ID to delete
-     * @param EntityManagerInterface $em Used entity manager.
+     * @param string $code Product code to remove.
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
-        '/{_locale}/product/{id}',
+        '/{_locale}/products/{code}',
         name: 'product_delete',
         requirements: [
-            'id' => Requirement::DIGITS,
             '_locale' => '%supported_locales%'
         ],
         methods: ['DELETE']
     )]
     public function delete(
-        int $id,
-        EntityManagerInterface $em
+        string $code
     ): Response {
         // Deny access if not admin
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
-        // Fetch wanted product in DB
-        $product = $em->getRepository(Product::class)->find($id);
-        // If no match
-        if (!$product) {
+        
+        try{
+            $product = $this->productService->delete($code);
+        }
+        catch (EntityNotFoundException $e) {
             // Send not found response
             return $this->json([
                 'error' => $this->translator->trans(
-                    "product.id_not_found",
-                    ["id" => $id],
+                    "product.code_not_found",
+                    ["code" => $code],
                     "errors"
                 )
             ], Response::HTTP_NOT_FOUND);
         }
-        // Delete product in DB
-        $em->remove($product);
-        $em->flush();
-
+  
         // Send deleted product info
         return $this->json($product, 200, [], [
             'groups' => ['product.index', 'product.detail']
