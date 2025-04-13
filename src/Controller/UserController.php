@@ -2,12 +2,11 @@
 
 namespace App\Controller;
 
-use App\Entity\User;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\UserService;
+use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -16,6 +15,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class UserController extends AbstractController
 {
+
+    /**
+     * @var UserService Used user service.
+     */
+    private UserService $userService;
 
     /**
      * @var TranslatorInterface The used translator interface
@@ -27,8 +31,11 @@ class UserController extends AbstractController
      *
      * @param TranslatorInterface $translator Used translator.
      */
-    public function __construct(TranslatorInterface $translator)
-    {
+    public function __construct(
+        UserService $userService,
+        TranslatorInterface $translator
+    ) {
+        $this->userService = $userService;
         $this->translator = $translator;
     }
 
@@ -43,8 +50,6 @@ class UserController extends AbstractController
      * }
      *
      * @param Request $request Client request.
-     * @param UserPasswordHasherInterface $passwordHasher Used password hasher.
-     * @param EntityManagerInterface $em Used entity manager.
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
@@ -57,17 +62,17 @@ class UserController extends AbstractController
     )]
     public function register(
         Request $request,
-        UserPasswordHasherInterface $passwordHasher,
-        EntityManagerInterface $em
     ): Response {
         // Get request payload
         $json = $request->getContent();
         $data = json_decode($json, true);
-
-        // Check that email is not already used
-        $existing = $em->getRepository(User::class)->findOneByEmail(trim($data['email']));
-        // If already used, throw 400 error
-        if ($existing != null) {
+        // Register User
+        try {
+            $user = $this->userService->register($data);
+        }
+        // If user email alredy used
+        catch (InvalidArgumentException) {
+            // Throw 400 error
             return $this->json([
                 'error' => $this->translator->trans(
                     'user.email_already_used',
@@ -79,31 +84,20 @@ class UserController extends AbstractController
             ], Response::HTTP_BAD_REQUEST);
         }
 
-        // Create user accordingly
-        $user = new User()
-            ->setEmail($data['email'])
-            ->setFirstname($data['firstname'])
-            ->setUsername($data['username'])
-            ->setRoles(['ROLE_USER']);
-        // Encrypt password in DB
-        $hashedPassword = $passwordHasher->hashPassword(
-            $user,
-            $data['password']
-        );
-        $user->setPassword($hashedPassword);
-        // Save created user
-        $em->persist($user);
-        $em->flush();
         // Send updated user info
-        return $this->json($user, Response::HTTP_CREATED, [], [
-            'groups' => ['user.index']
-        ]);
+        return $this->json(
+            $user,
+            Response::HTTP_CREATED,
+            [],
+            [
+                'groups' => ['user.index']
+            ]
+        );
     }
 
     /**
      * Get logged in user info.
      *
-     * @param Request $request Client request.
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
@@ -114,12 +108,15 @@ class UserController extends AbstractController
         ],
         methods: ['GET']
     )]
-    public function getUserInfo(
-        Request $request,
-        EntityManagerInterface $em
-    ): Response {
-        return $this->json($this->getUser(), Response::HTTP_OK, [], [
-            'groups' => ['user.index']
-        ]);
+    public function getUserInfo(): Response
+    {
+        return $this->json(
+            $$this->getUser(),
+            Response::HTTP_OK,
+            [],
+            [
+                'groups' => ['user.index']
+            ]
+        );
     }
 }
