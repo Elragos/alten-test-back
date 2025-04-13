@@ -8,7 +8,7 @@ use Doctrine\ORM\EntityNotFoundException;
 use InvalidArgumentException;
 
 /**
- * Servoce handling all product manipulations.
+ * Service handling all product manipulations.
  */
 class ProductService
 {
