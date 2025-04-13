@@ -3,7 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\Product;
+use App\Service\ProductService;
 use Doctrine\ORM\EntityManagerInterface;
+use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,17 +18,26 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class CartController extends AbstractController
 {
     /**
-     * @var TranslatorInterface The used translator interface
+     * @var ProductService Used product service.
+     */
+    private ProductService $productService;
+
+    /**
+     * @var TranslatorInterface Used translator.
      */
     private TranslatorInterface $translator;
 
     /**
      * Generate controller.
      *
+     * @param ProductService $productService Used product service.
      * @param TranslatorInterface $translator Used translator.
      */
-    public function __construct(TranslatorInterface $translator)
-    {
+    public function __construct(
+        ProductService $productService,
+        TranslatorInterface $translator
+    ) {
+        $this->productService = $productService;
         $this->translator = $translator;
     }
     /** GET methods */
@@ -38,14 +49,14 @@ class CartController extends AbstractController
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
-        '/{_locale}/cart',
-        name: 'cart_index',
-        requirements: [
-            '_locale' => '%supported_locales%'
-        ],
-        methods: ['GET']
-    )]
-    public function index(Request $request) : Response
+            '/{_locale}/cart',
+            name: 'cart_index',
+            requirements: [
+                '_locale' => '%supported_locales%'
+            ],
+            methods: ['GET']
+        )]
+    public function index(Request $request): Response
     {
         // Get user session.
         $session = $request->getSession();
@@ -72,13 +83,13 @@ class CartController extends AbstractController
      * @return Response Server response (JSON if ok, error otherwise).
      */
     #[Route(
-        '/{_locale}/cart',
-        name: 'cart_add',
-        requirements: [
-            '_locale' => '%supported_locales%'
-        ],
-        methods: ['POST']
-    )]
+            '/{_locale}/cart',
+            name: 'cart_add',
+            requirements: [
+                '_locale' => '%supported_locales%'
+            ],
+            methods: ['POST']
+        )]
     public function add(Request $request, EntityManagerInterface $em): Response
     {
         // Get request payload
@@ -96,10 +107,10 @@ class CartController extends AbstractController
 
         // Validate payload product (product exists in DB)
         $productCode = $payload->get("productCode");
-        // Fetch wanted product with DB
-        $product = $em->getRepository(Product::class)->findOneBy(['code' => $productCode]);
-        // If not found
-        if (!$product) {
+        try{
+            $product = $this->productService->getByCode($productCode);
+        }
+        catch(InvalidArgumentException){
             // Send 404 error
             return $this->json([
                 'error' => $this->translator->trans(
@@ -109,7 +120,7 @@ class CartController extends AbstractController
                 )
             ], Response::HTTP_NOT_FOUND);
         }
-
+      
         // Get user session
         $session = $request->getSession();
 
@@ -206,7 +217,7 @@ class CartController extends AbstractController
                 unset($cart[$index]);
             }
         }
-       
+
         // Send result
         $session->set('cart', $cart);
         $result = [

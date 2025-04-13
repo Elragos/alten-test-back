@@ -96,13 +96,13 @@ class WishlistController extends AbstractController
         // If product not found
         catch (InvalidArgumentException) {
             // Send 404 error
-            throw $this->createNotFoundException(
-                $this->translator->trans(
+            return $this->json([
+                'error' => $this->translator->trans(
                     "product.code_not_found",
                     ["code" => $code],
                     "errors"
                 )
-            );
+            ], Response::HTTP_NOT_FOUND);
         }
 
         // Send updated wishlist data
@@ -141,13 +141,13 @@ class WishlistController extends AbstractController
         // If product not found
         catch (InvalidArgumentException) {
             // Send 404 error
-            throw $this->createNotFoundException(
-                $this->translator->trans(
+            return $this->json([
+                'error' => $this->translator->trans(
                     "product.code_not_found",
                     ["code" => $code],
                     "errors"
                 )
-            );
+            ], Response::HTTP_NOT_FOUND);
         }
 
         // Send updated wishlist data
