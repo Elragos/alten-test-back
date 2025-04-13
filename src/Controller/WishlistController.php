@@ -4,17 +4,24 @@ namespace App\Controller;
 
 use App\Entity\Product;
 use App\Entity\Wishlist;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\WishlistService;
+use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Controller managing user.
+ * Controller managing wishlist.
  */
 class WishlistController extends AbstractController
 {
+
+    /**
+     * @var WishlistService Used wishlist service.
+     */
+    private WishlistService $wishlistService;
+
     /**
      * @var TranslatorInterface The used translator interface
      */
@@ -25,8 +32,11 @@ class WishlistController extends AbstractController
      *
      * @param TranslatorInterface $translator Used translator.
      */
-    public function __construct(TranslatorInterface $translator)
-    {
+    public function __construct(
+        WishlistService $wishlistService,
+        TranslatorInterface $translator
+    ) {
+        $this->wishlistService = $wishlistService;
         $this->translator = $translator;
     }
 
@@ -48,7 +58,7 @@ class WishlistController extends AbstractController
     public function index(): Response
     {
         // Get user wishlist
-        $wishlist = $this->getUser()->getWishlist();
+        $wishlist = $this->wishlistService->get($this->getUser());
 
         // Return current user wishlit products
         return $this->json(
@@ -67,7 +77,6 @@ class WishlistController extends AbstractController
      * Add product to current user's wishlist.
      *
      * @param string $code Product code to add.
-     * @param EntityManagerInterface $em Used entity manager.
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
@@ -78,16 +87,14 @@ class WishlistController extends AbstractController
         ],
         methods: ['POST']
     )]
-    public function addProduct(
-        string $code,
-        EntityManagerInterface $em
-    ): Response {
-        // Fetch wanted product in DB
-        $product = $em->getRepository(Product::class)->findOneBy([
-            'code' => $code
-        ]);
-        // If no match
-        if (!$product) {
+    public function addProduct(string $code): Response
+    {
+        // Add product to wishlist
+        try {
+            $wishlist = $this->wishlistService->addProduct($this->getUser(), $code);
+        }
+        // If product not found
+        catch (InvalidArgumentException) {
             // Send 404 error
             throw $this->createNotFoundException(
                 $this->translator->trans(
@@ -97,19 +104,6 @@ class WishlistController extends AbstractController
                 )
             );
         }
-        // Get user wishlist
-        $wishlist = $this->getUser()->getWishList();
-        // If not created
-        if (!$wishlist) {
-            // Create it
-            $wishlist = new Wishlist();
-            $wishlist->setUser($this->getUser());
-        }
-        // Add product to wishlist (if already in wishlist, nothing happens)
-        $wishlist->addProduct($product);
-        // Save wishlist
-        $em->persist($wishlist);
-        $em->flush();
 
         // Send updated wishlist data
         return $this->json(
@@ -128,7 +122,6 @@ class WishlistController extends AbstractController
      * Remove product from current user's wishlist.
      *
      * @param string $code Product code to remove.
-     * @param EntityManagerInterface $em
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
@@ -139,30 +132,22 @@ class WishlistController extends AbstractController
         ],
         methods: ['DELETE']
     )]
-    public function removeProduct(
-        string $code,
-        EntityManagerInterface $em
-    ): Response {
-        // Fetch wanted product in DB
-        $product = $em->getRepository(Product::class)->findOneBy([
-            'code'=> $code
-        ]);
-        // If no match
-        if (!$product) {
+    public function removeProduct(string $code): Response
+    {
+        // Remove product from wishlist
+        try {
+            $wishlist = $this->wishlistService->removeProduct($this->getUser(), $code);
+        }
+        // If product not found
+        catch (InvalidArgumentException) {
             // Send 404 error
             throw $this->createNotFoundException(
-                $this->translator->trans("product.code_not_found", ["code" => $code], "errors")
+                $this->translator->trans(
+                    "product.code_not_found",
+                    ["code" => $code],
+                    "errors"
+                )
             );
-        }
-        // Get user wishlist
-        $wishlist = $this->getUser()->getWishList();
-        // If exists
-        if ($wishlist) {
-            // Remove product from wishlist (if not found, nothing happens)
-            $wishlist->removeProduct($product);
-            // Save wishlist
-            $em->persist($wishlist);
-            $em->flush();
         }
 
         // Send updated wishlist data
