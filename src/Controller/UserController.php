@@ -111,7 +111,7 @@ class UserController extends AbstractController
     public function getUserInfo(): Response
     {
         return $this->json(
-            $$this->getUser(),
+            $this->getUser(),
             Response::HTTP_OK,
             [],
             [

@@ -18,24 +18,31 @@ class UserService
      */
     private UserRepository $userRepository;
 
+    /**
+     * @var UserPasswordHasherInterface Used password hasher service.
+     */
     private UserPasswordHasherInterface $passwordHasher;
 
     /**
      * Initiate service.
-     * @param UserRepository $userRepository
+     * @param UserRepository $userRepository Used user repository.
+     * @param UserPasswordHasherInterface $passwordHasher Used password hasher service.
      */
-    public function __construct(UserRepository $userRepository)
-    {
+    public function __construct(
+        UserRepository $userRepository,
+        UserPasswordHasherInterface $passwordHasher
+    ) {
         $this->userRepository = $userRepository;
+        $this->passwordHasher = $passwordHasher;
     }
 
-    public function register(array $data) : User
+    public function register(array $data): User
     {
         // Check that email is not already used
         $existing = $this->userRepository->findOneByEmail(trim($data['email']));
         // If already used
         if ($existing != null) {
-           throw new InvalidArgumentException("email");
+            throw new InvalidArgumentException("email");
         }
 
         // Create user accordingly
