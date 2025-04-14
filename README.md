@@ -63,3 +63,15 @@ Cela va aussi créer 3 produits pour tester les 3 types de stocks :
 ## Exploiter l'API
 
 Utiliser le fichier Postman pour avoir toutes les URL disponibles pour communiquer avec l'API
+
+## Tester l'API
+
+Pour lancer les tests de l'API, il faut d'abord créer et alimenter la BDD de test :
+```
+php bin/console doctrine:fixtures:load --env=test
+```
+
+Ensuite on peut lancer les tests via la commande suivante :
+```
+php bin/phpunit
+```
