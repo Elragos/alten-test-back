@@ -3,7 +3,7 @@ cart:
     invalid_quantity: 'Invalid quantity in payload'
   item:
     not_enough_stock: 'Not enough stock for product "{code}"". Setting quantity at {stock}'
-    quantity_zero: 'Product {code} was removed from cart due to quantity equals to 0 or below'
+    quantity_zero: 'Product "{code}" was removed from cart due to quantity equals to 0 or below'
 
 product:
   code_already_used: 'Product code "{code}" already used'

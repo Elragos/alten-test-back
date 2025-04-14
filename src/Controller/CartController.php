@@ -2,9 +2,9 @@
 
 namespace App\Controller;
 
-use App\Entity\Product;
-use App\Service\ProductService;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\CartService;
+use App\Utils\Cart;
+use App\Utils\CartItem;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,9 +18,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class CartController extends AbstractController
 {
     /**
-     * @var ProductService Used product service.
+     * @var CartService Used product service.
      */
-    private ProductService $productService;
+    private CartService $cartService;
 
     /**
      * @var TranslatorInterface Used translator.
@@ -28,16 +28,21 @@ class CartController extends AbstractController
     private TranslatorInterface $translator;
 
     /**
+     * @var string Cart items session key.
+     */
+    final protected string $CART_ITEM_SESSION_KEY = "cartItems";
+
+    /**
      * Generate controller.
      *
-     * @param ProductService $productService Used product service.
+     * @param CartService $cartService Used product service.
      * @param TranslatorInterface $translator Used translator.
      */
     public function __construct(
-        ProductService $productService,
+        CartService $cartService,
         TranslatorInterface $translator
     ) {
-        $this->productService = $productService;
+        $this->cartService = $cartService;
         $this->translator = $translator;
     }
     /** GET methods */
@@ -49,13 +54,13 @@ class CartController extends AbstractController
      * @return Response Server Response (JSON if ok, error otherwise).
      */
     #[Route(
-            '/{_locale}/cart',
-            name: 'cart_index',
-            requirements: [
-                '_locale' => '%supported_locales%'
-            ],
-            methods: ['GET']
-        )]
+        '/{_locale}/cart',
+        name: 'cart_index',
+        requirements: [
+            '_locale' => '%supported_locales%'
+        ],
+        methods: ['GET']
+    )]
     public function index(Request $request): Response
     {
         // Get user session.
@@ -74,23 +79,22 @@ class CartController extends AbstractController
      * Add product to cart.
      * Required payload :
      * {
-     *      "productId": Product ID to add
-     *      "quantity": quantity to add
+     *      "productCode": Product code to add (string)
+     *      "quantity": Quantity to add (int)
      * }
      *
      * @param Request $request Client request.
-     * @param EntityManagerInterface $em Used entity manager.
      * @return Response Server response (JSON if ok, error otherwise).
      */
     #[Route(
-            '/{_locale}/cart',
-            name: 'cart_add',
-            requirements: [
-                '_locale' => '%supported_locales%'
-            ],
-            methods: ['POST']
-        )]
-    public function add(Request $request, EntityManagerInterface $em): Response
+        '/{_locale}/cart',
+        name: 'cart_add',
+        requirements: [
+            '_locale' => '%supported_locales%'
+        ],
+        methods: ['POST']
+    )]
+    public function add(Request $request): Response
     {
         // Get request payload
         $payload = $request->getPayload();
@@ -101,16 +105,26 @@ class CartController extends AbstractController
         if (!is_int($quantity)) {
             // Send error
             return $this->json([
-                'error' => $this->translator->trans("cart.payload.invalid_quantity", [], "errors"),
-            ], 400, [], []);
+                'error' => $this->translator->trans(
+                    "cart.payload.invalid_quantity",
+                    [],
+                    "errors"
+                ),
+            ], Response::HTTP_BAD_REQUEST);
         }
 
-        // Validate payload product (product exists in DB)
+        // Get product code
         $productCode = $payload->get("productCode");
-        try{
-            $product = $this->productService->getByCode($productCode);
+
+        // Get cart
+        $cart = $this->getCart($request);
+
+        try {
+            // Add product to cart
+            $this->cartService->add($cart, $productCode, $quantity);
         }
-        catch(InvalidArgumentException){
+        // If product not found
+        catch (InvalidArgumentException) {
             // Send 404 error
             return $this->json([
                 'error' => $this->translator->trans(
@@ -120,63 +134,31 @@ class CartController extends AbstractController
                 )
             ], Response::HTTP_NOT_FOUND);
         }
-      
-        // Get user session
-        $session = $request->getSession();
-
-        // Initialize cart if not defined
-        if (!$session->has('cart')) {
-            $session->set('cart', []);
-        }
-
-        // Find cart item accordingly
-        $cart = $session->get('cart');
-        $cartIndexToUpdate = -1;
-        foreach ($cart as $index => $cartItem) {
-            if ($cartItem['product']->getCode() == $productCode) {
-                $cartIndexToUpdate = $index;
-            }
-        }
-        // Initialize cart item if not set
-        if ($cartIndexToUpdate == -1) {
-            $cart[] = [
-                "product" => $product,
-                "quantity" => 0,
-            ];
-            $cartIndexToUpdate = sizeof($cart) - 1;
-        }
-        // Update cart item accordingly
-        $errors = [];
-        $cart[$cartIndexToUpdate]["quantity"] += $quantity;
-        // Limit quantity to product stock
-        $productStock = $product->getQuantity();
-        if ($cart[$cartIndexToUpdate]["quantity"] > $productStock) {
-            $cart[$cartIndexToUpdate]["quantity"] = $productStock;
-            $errors[] = $this->translator->trans("cart.item.not_enough_stock", [
-                "code" => $productCode,
-                "stock" => $productStock
-            ], "errors");
-        }
-        // Remove item if quantity negative or null
-        if ($cart[$cartIndexToUpdate]["quantity"] <= 0) {
-            unset($cart[$cartIndexToUpdate]);
-            $errors[] = $this->translator->trans("cart.item.quantity_zero", [
-                "code" => $productCode
-            ], "errors");
-        }
+        // Save cart
+        $this->saveCart($request, $cart);
 
         // Send result
-        $session->set('cart', $cart);
         $result = [
-            "cart" => $cart,
-            "errors" => $errors
+            "cart" => $cart->getItemsAsArray(),
+            "errors" => $cart->getErrors()
         ];
 
-        return $this->json($result, 200, [], [
-            'groups' => ['product.index']
-        ]);
+        return $this->json(
+            $result,
+            200,
+            [],
+            [
+                'groups' => ['product.index']
+            ]
+        );
     }
 
+    /**
+     * Remove product from cart.
+     * @param Request $request User request.
+     * @param string $code Desired product code.
+     * @return Response Updated cart, or error if something went wrong.
+     */
     #[Route(
         '/{_locale}/cart/{code}',
         name: 'cart_remove',
@@ -185,13 +167,17 @@ class CartController extends AbstractController
         ],
         methods: ['DELETE']
     )]
-    public function delete(Request $request, EntityManagerInterface $em, string $code): Response
+    public function delete(Request $request, string $code): Response
     {
+        // Get user cart
+        $cart = $this->getCart($request);
 
-        // Fetch wanted product with DB
-        $product = $em->getRepository(Product::class)->findOneBy(['code' => $code]);
-        // If not found
-        if (!$product) {
+        // Remove product from cart
+        try {
+            $this->cartService->remove($cart, $code);
+        }
+        // If product not found
+        catch (InvalidArgumentException) {
             // Send 404 error
             return $this->json([
                 'error' => $this->translator->trans(
@@ -201,32 +187,56 @@ class CartController extends AbstractController
                 )
             ], Response::HTTP_NOT_FOUND);
         }
-
-        // Get user session
-        $session = $request->getSession();
-
-        // Initialize cart if not defined
-        if (!$session->has('cart')) {
-            $session->set('cart', []);
-        }
-
-        // Find cart item accordingly
-        $cart = $session->get('cart');
-        foreach ($cart as $index => $cartItem) {
-            if ($cartItem['product']->getCode() == $code) {
-                unset($cart[$index]);
-            }
-        }
+        // Save cart
+        $this->saveCart($request, $cart);
 
         // Send result
-        $session->set('cart', $cart);
         $result = [
-            "cart" => $cart,
+            "cart" => $cart->getItemsAsArray(),
             "errors" => []
         ];
 
-        return $this->json($result, 200, [], [
-            'groups' => ['product.index']
-        ]);
+        return $this->json(
+            $result,
+            200,
+            [],
+            [
+                'groups' => ['product.index']
+            ]
+        );
+    }
+
+    /**
+     * Get user cart.
+     * @param Request $request User request.
+     * @return Cart Corresponding cart.
+     */
+    private function getCart(Request $request): Cart
+    {
+        // Get user session
+        $session = $request->getSession();
+
+        $cartItems = [];
+        // If cart items defined in session
+        if ($session->has($this->CART_ITEM_SESSION_KEY)) {
+            foreach ($session->get($this->CART_ITEM_SESSION_KEY) as $cartItem) {
+                $cartItems[] = new CartItem($cartItem["product"], $cartItem["quantity"]);
+            }
+        }
+
+        // Return corresponding cart
+        return new Cart($cartItems);
+    }
+
+    /**
+     * Save user cart.
+     * @param Request $request User request.
+     * @param Cart $cart User cart.
+     * @return void
+     */
+    private function saveCart(Request $request, Cart $cart): void
+    {
+        $session = $request->getSession();
+        $session->set($this->CART_ITEM_SESSION_KEY, $cart->getItemsAsArray());
     }
 }

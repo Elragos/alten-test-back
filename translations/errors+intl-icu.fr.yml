@@ -7,7 +7,7 @@ cart:
 
 product:
   code_already_used: 'Le code produit "{code}" est déjà utilisé'
-  code_not_found: 'Aucun produit ne correspond au code {code}'
+  code_not_found: 'Aucun produit ne correspond au code "{code}"'
 
 user:
   email_already_used: 'L''email "{email}" est déjà utilisé'
