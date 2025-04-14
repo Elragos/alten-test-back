@@ -63,17 +63,20 @@ class CartController extends AbstractController
     )]
     public function index(Request $request): Response
     {
-        // Get user session.
-        $session = $request->getSession();
-
-        // Initialize cart if not defined
-        if (!$session->has('cart')) {
-            $session->set('cart', []);
-        }
+        // Get user cart
+        $cart = $this->getCart($request);
 
         // Return user cart
-        return $this->json($session->get('cart'));
+        return $this->json(
+            $cart->getItemsAsArray(),
+            200,
+            [],
+            [
+                'groups' => ['product.index']
+            ]
+        );
     }
+
 
     /**
      * Add product to cart.

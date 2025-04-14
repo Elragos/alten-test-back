@@ -128,6 +128,22 @@ class CartControllerTest extends TestControllerBase
         $this->assertEquals($dto['code'], $cartItem['product']['code']);
         $this->assertArrayHasKey('quantity', $cartItem);
         $this->assertEquals(1, $cartItem['quantity']);
+
+        // Get user cart
+        $this->client->request('GET', '/fr/cart', [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+        ]);
+        $response = $this->client->getResponse();
+        // Test HTTP response is OK
+        $this->assertResponseIsSuccessful();
+        // Test response is JSON format
+        $this->assertJson($response->getContent());
+
+        $json = json_decode($response->getContent(), true);
+        // Test returned array is not empty
+        $this->assertIsArray($json);
+        $this->assertEquals(1, sizeof($json));
     }
 
     /**
