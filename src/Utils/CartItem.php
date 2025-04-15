@@ -3,6 +3,7 @@
 namespace App\Utils;
 
 use App\Entity\Product;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Class representing a cart item.
@@ -12,11 +13,13 @@ class CartItem
     /**
      * @var Product Item product.
      */
+    #[Groups(['product.index'])]
     private Product $product;
 
     /**
      * @var int Item quantity.
      */
+    #[Groups(['product.index'])]
     private int $quantity;
 
     /**

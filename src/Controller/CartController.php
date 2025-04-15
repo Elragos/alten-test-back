@@ -68,7 +68,7 @@ class CartController extends AbstractController
 
         // Return user cart
         return $this->json(
-            $cart->getItemsAsArray(),
+            $cart->getItems(),
             200,
             [],
             [
@@ -142,7 +142,7 @@ class CartController extends AbstractController
 
         // Send result
         $result = [
-            "cart" => $cart->getItemsAsArray(),
+            "cart" => $cart->getItems(),
             "errors" => $cart->getErrors()
         ];
 
@@ -195,7 +195,7 @@ class CartController extends AbstractController
 
         // Send result
         $result = [
-            "cart" => $cart->getItemsAsArray(),
+            "cart" => $cart->getItems(),
             "errors" => []
         ];
 

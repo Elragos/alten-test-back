@@ -3,6 +3,7 @@
 namespace App\Utils;
 
 use App\Entity\Product;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Class representing a user cart.
@@ -12,6 +13,7 @@ class Cart
     /**
      * @var CartItem[] Cart item list.
      */
+    #[Groups(['product.index'])]
     private array $items;
 
     /**
@@ -83,29 +85,20 @@ class Cart
         return $item;
     }
 
+    /**
+     * Remove product from cart.
+     * @param Product $product
+     * @return void
+     */
     public function removeItem(Product $product): void
     {
         // For each items in cart
         foreach ($this->items as $index => $item) {
             // If product in cart
             if ($item->getProduct()->getId() == $product->getId()) {
-                var_dump("here");
                 // Remove item from list
                 unset($this->items[$index]);
             }
         }
-    }
-
-    public function getItemsAsArray(): array
-    {
-        $result = [];
-        foreach ($this->items as $item) {
-            $result[] = [
-                "product" => $item->getProduct(),
-                "quantity" => $item->getQuantity(),
-            ];
-        }
-
-        return $result;
     }
 }
