@@ -222,9 +222,7 @@ class CartController extends AbstractController
         $cartItems = [];
         // If cart items defined in session
         if ($session->has($this->CART_ITEM_SESSION_KEY)) {
-            foreach ($session->get($this->CART_ITEM_SESSION_KEY) as $cartItem) {
-                $cartItems[] = new CartItem($cartItem["product"], $cartItem["quantity"]);
-            }
+            $cartItems = $session->get($this->CART_ITEM_SESSION_KEY);
         }
 
         // Return corresponding cart
@@ -240,6 +238,6 @@ class CartController extends AbstractController
     private function saveCart(Request $request, Cart $cart): void
     {
         $session = $request->getSession();
-        $session->set($this->CART_ITEM_SESSION_KEY, $cart->getItemsAsArray());
+        $session->set($this->CART_ITEM_SESSION_KEY, $cart->getItems());
     }
 }
