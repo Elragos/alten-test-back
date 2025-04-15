@@ -68,6 +68,8 @@ Utiliser le fichier Postman pour avoir toutes les URL disponibles pour communiqu
 
 Pour lancer les tests de l'API, il faut d'abord créer et alimenter la BDD de test :
 ```
+php bin/console doctrine:database:create --env=test
+php bin/console doctrine:schema:create --env=test
 php bin/console doctrine:fixtures:load --env=test
 ```
 
